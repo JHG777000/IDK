@@ -16,7 +16,7 @@ IDK, or Interactive Development Kit provides the base for an interactive applica
 
  Support for scene zooming and panning
 
--Basic input from the mouse and keyboard
+-Basic input handling for the mouse and keyboard
 
 -Basic text display and editing
 
