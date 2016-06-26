@@ -71,105 +71,105 @@ typedef void (*IDKDrawFunc)(IDKDrawArea area) ;
 
 #define IDK_DefineKey(key,lastkey) key = (lastkey + 1)
 
-typedef enum { a_key = 0,
+typedef enum { idk_a_key = 0,
     
-IDK_DefineKey(b_key,a_key),
+IDK_DefineKey(idk_b_key,idk_a_key),
     
-IDK_DefineKey(c_key,b_key),
+IDK_DefineKey(idk_c_key,idk_b_key),
     
-IDK_DefineKey(d_key,c_key),
+IDK_DefineKey(idk_d_key,idk_c_key),
     
-IDK_DefineKey(e_key,d_key),
+IDK_DefineKey(idk_e_key,idk_d_key),
     
-IDK_DefineKey(f_key,e_key),
+IDK_DefineKey(idk_f_key,idk_e_key),
     
-IDK_DefineKey(g_key,f_key),
+IDK_DefineKey(idk_g_key,idk_f_key),
     
-IDK_DefineKey(h_key,g_key),
+IDK_DefineKey(idk_h_key,idk_g_key),
     
-IDK_DefineKey(i_key,h_key),
+IDK_DefineKey(idk_i_key,idk_h_key),
     
-IDK_DefineKey(j_key,i_key),
+IDK_DefineKey(idk_j_key,idk_i_key),
     
-IDK_DefineKey(k_key,j_key),
+IDK_DefineKey(idk_k_key,idk_j_key),
     
-IDK_DefineKey(l_key,k_key),
+IDK_DefineKey(idk_l_key,idk_k_key),
     
-IDK_DefineKey(m_key,l_key),
+IDK_DefineKey(idk_m_key,idk_l_key),
     
-IDK_DefineKey(n_key,m_key),
+IDK_DefineKey(idk_n_key,idk_m_key),
     
-IDK_DefineKey(o_key,n_key),
+IDK_DefineKey(idk_o_key,idk_n_key),
     
-IDK_DefineKey(p_key,o_key),
+IDK_DefineKey(idk_p_key,idk_o_key),
     
-IDK_DefineKey(q_key,p_key),
+IDK_DefineKey(idk_q_key,idk_p_key),
     
-IDK_DefineKey(r_key,q_key),
+IDK_DefineKey(idk_r_key,idk_q_key),
     
-IDK_DefineKey(s_key,r_key),
+IDK_DefineKey(idk_s_key,idk_r_key),
     
-IDK_DefineKey(t_key,s_key),
+IDK_DefineKey(idk_t_key,idk_s_key),
     
-IDK_DefineKey(u_key,t_key),
+IDK_DefineKey(idk_u_key,idk_t_key),
     
-IDK_DefineKey(v_key,u_key),
+IDK_DefineKey(idk_v_key,idk_u_key),
     
-IDK_DefineKey(w_key,v_key),
+IDK_DefineKey(idk_w_key,idk_v_key),
     
-IDK_DefineKey(x_key,w_key),
+IDK_DefineKey(idk_x_key,idk_w_key),
     
-IDK_DefineKey(y_key,x_key),
+IDK_DefineKey(idk_y_key,idk_x_key),
 
-IDK_DefineKey(z_key,y_key),
+IDK_DefineKey(idk_z_key,idk_y_key),
     
-IDK_DefineKey(right_key,z_key),
+IDK_DefineKey(idk_right_key,idk_z_key),
     
-IDK_DefineKey(left_key,right_key),
+IDK_DefineKey(idk_left_key,idk_right_key),
     
-IDK_DefineKey(up_key,left_key),
+IDK_DefineKey(idk_up_key,idk_left_key),
     
-IDK_DefineKey(down_key,up_key),
+IDK_DefineKey(idk_down_key,idk_up_key),
     
-IDK_DefineKey(numpad_1,down_key),
+IDK_DefineKey(idk_numpad_1,idk_down_key),
     
-IDK_DefineKey(numpad_2,numpad_1),
+IDK_DefineKey(idk_numpad_2,idk_numpad_1),
     
-IDK_DefineKey(numpad_3,numpad_2),
+IDK_DefineKey(idk_numpad_3,idk_numpad_2),
     
-IDK_DefineKey(numpad_4,numpad_3),
+IDK_DefineKey(idk_numpad_4,idk_numpad_3),
     
-IDK_DefineKey(numpad_5,numpad_4),
+IDK_DefineKey(idk_numpad_5,idk_numpad_4),
     
-IDK_DefineKey(numpad_6,numpad_5),
+IDK_DefineKey(idk_numpad_6,idk_numpad_5),
     
-IDK_DefineKey(numpad_7,numpad_6),
+IDK_DefineKey(idk_numpad_7,idk_numpad_6),
     
-IDK_DefineKey(numpad_8,numpad_7),
+IDK_DefineKey(idk_numpad_8,idk_numpad_7),
     
-IDK_DefineKey(numpad_9,numpad_8),
+IDK_DefineKey(idk_numpad_9,idk_numpad_8),
     
-IDK_DefineKey(bs_key,numpad_9),
+IDK_DefineKey(idk_bs_key,idk_numpad_9),
 
-IDK_DefineKey(space_key, bs_key),
+IDK_DefineKey(idk_space_key,idk_bs_key),
     
-IDK_DefineKey(key_1,space_key),
+IDK_DefineKey(idk_key_1,idk_space_key),
 
-IDK_DefineKey(key_2,key_1),
+IDK_DefineKey(idk_key_2,idk_key_1),
 
-IDK_DefineKey(key_3,key_2),
+IDK_DefineKey(idk_key_3,idk_key_2),
 
-IDK_DefineKey(key_4,key_3),
+IDK_DefineKey(idk_key_4,idk_key_3),
     
-IDK_DefineKey(key_5,key_4),
+IDK_DefineKey(idk_key_5,idk_key_4),
     
-IDK_DefineKey(key_6,key_5),
+IDK_DefineKey(idk_key_6,idk_key_5),
 
-IDK_DefineKey(key_7,key_6),
+IDK_DefineKey(idk_key_7,idk_key_6),
     
-IDK_DefineKey(key_8,key_7),
+IDK_DefineKey(idk_key_8,idk_key_7),
     
-IDK_DefineKey(key_9,key_8),
+IDK_DefineKey(idk_key_9,idk_key_8),
     
 } IDK_Key ;
 

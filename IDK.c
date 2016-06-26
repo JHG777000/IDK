@@ -48,11 +48,11 @@ static int num_of_keys = 100 ;
 
 static int* key_array = NULL ;
 
-int left = 0 ;
+static int left = 0 ;
 
-int middle = 0 ;
+static int middle = 0 ;
 
-int right = 0 ;
+static int right = 0 ;
 
 static int forceupdate = 0 ;
 
@@ -70,13 +70,19 @@ static float oldY = 0 ;
 
 static void IDK_PlatformInit( int mode ) ;
 
+
 int IDK_Timer( long* time_count, long seconds ) {
     
     long the_time = ((unsigned)time(NULL) - (*time_count)) ;
     
-    (*time_count) = (unsigned)time(NULL) ;
+    if ( the_time >= seconds ) {
+        
+        (*time_count) = (unsigned)time(NULL) ;
+        
+        return 1 ;
+    }
     
-    return ( the_time >= seconds ) ;
+    return 0 ;
 }
 
 int IDK_Timer_HP( double* time_count, double seconds ) {
@@ -122,302 +128,302 @@ static void IDKKeyCallback(GLFWwindow* window, int key, int scancode, int action
             
         case GLFW_KEY_A:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, a_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_a_key) ;
             
             break;
             
         case GLFW_KEY_B:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, b_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_b_key) ;
             
             break;
             
         case GLFW_KEY_C:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, c_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_c_key) ;
             
             break;
             
         case GLFW_KEY_D:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, d_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_d_key) ;
             
             break;
             
         case GLFW_KEY_E:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, e_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_e_key) ;
             
             break;
             
         case GLFW_KEY_F:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, f_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_f_key) ;
             
             break;
             
         case GLFW_KEY_G:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, g_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_g_key) ;
             
             break;
             
         case GLFW_KEY_H:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, h_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_h_key) ;
             
             break;
             
             
         case GLFW_KEY_I:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, i_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_i_key) ;
             
             break;
             
         case GLFW_KEY_J:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, j_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_j_key) ;
             
             break;
             
         case GLFW_KEY_K:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, k_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_k_key) ;
             
             break;
             
         case GLFW_KEY_L:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, l_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_l_key) ;
             
             break;
             
         case GLFW_KEY_M:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, m_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_m_key) ;
             
             break;
             
         case GLFW_KEY_N:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, n_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_n_key) ;
             
             break;
             
         case GLFW_KEY_O:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, o_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_o_key) ;
             
             break;
             
         case GLFW_KEY_P:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, p_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_p_key) ;
             
             break;
             
         case GLFW_KEY_Q:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, q_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_q_key) ;
             
             break;
             
         case GLFW_KEY_R:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, r_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_r_key) ;
             
             break;
             
         case GLFW_KEY_S:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, s_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_s_key) ;
             
             break;
             
         case GLFW_KEY_T:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, t_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_t_key) ;
             
             break;
             
         case GLFW_KEY_U:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, u_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_u_key) ;
             
             break;
             
         case GLFW_KEY_V:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, v_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_v_key) ;
             
             break;
             
         case GLFW_KEY_W:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, w_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_w_key) ;
             
             break;
             
         case GLFW_KEY_X:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, x_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_x_key) ;
             
             break;
             
         case GLFW_KEY_Y:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, y_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_y_key) ;
             
             break;
             
         case GLFW_KEY_Z:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, z_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_z_key) ;
             
             break;
             
         case GLFW_KEY_RIGHT:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, right_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_right_key) ;
             
             break;
             
         case GLFW_KEY_LEFT:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, left_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_left_key) ;
             
             break;
             
         case GLFW_KEY_UP:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, up_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_up_key) ;
             
             break;
             
         case GLFW_KEY_DOWN:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, down_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_down_key) ;
             
             break;
             
         case GLFW_KEY_KP_1:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, numpad_1) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_1) ;
             
             break;
             
         case GLFW_KEY_KP_2:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, numpad_2) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_2) ;
             
             break;
             
         case GLFW_KEY_KP_3:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, numpad_3) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_3) ;
             
             break;
             
         case GLFW_KEY_KP_4:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, numpad_4) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_4) ;
             
             break;
             
         case GLFW_KEY_KP_5:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, numpad_5) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_5) ;
             
             break;
             
         case GLFW_KEY_KP_6:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, numpad_6) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_6) ;
             
             break;
             
         case GLFW_KEY_KP_7:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, numpad_7) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_7) ;
             
             break;
             
         case GLFW_KEY_KP_8:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, numpad_8) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_8) ;
             
             break;
             
         case GLFW_KEY_KP_9:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, numpad_9) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_9) ;
             
             break;
             
         case GLFW_KEY_BACKSPACE:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, bs_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_bs_key) ;
             
             break;
             
         case GLFW_KEY_SPACE:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, space_key) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_space_key) ;
             
             break;
             
         case GLFW_KEY_1:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, key_1) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_key_1) ;
             
             break;
             
         case GLFW_KEY_2:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, key_2) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_key_2) ;
             
             break;
             
         case GLFW_KEY_3:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, key_3) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_key_3) ;
             
             break;
             
         case GLFW_KEY_4:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, key_4) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_key_4) ;
             
             break;
             
         case GLFW_KEY_5:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, key_5) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_key_5) ;
             
             break;
             
         case GLFW_KEY_6:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, key_6) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_key_6) ;
             
             break;
             
         case GLFW_KEY_7:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, key_7) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_key_7) ;
             
             break;
             
         case GLFW_KEY_8:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, key_8) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_key_8) ;
             
             break;
 
         case GLFW_KEY_9:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, key_9) ;
+            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_key_9) ;
             
             break;
             
@@ -724,7 +730,7 @@ const char* IDK_GetTextLine( IDKTextLine TextLine ) {
     
     IDK_PageSetMode(TextLine->Page, TextLine->mode) ;
     
-        if ( IDK_GetKey(left_key) ) {
+        if ( IDK_GetKey(idk_left_key) ) {
             
             if (IDK_PageGetCharAtCursor(TextLine->Page) == '&') IDK_PageSetCharAtCursor(TextLine->Page, TextLine->flash) ;
             
@@ -733,7 +739,7 @@ const char* IDK_GetTextLine( IDKTextLine TextLine ) {
             TextLine->lock = 0 ;
         }
         
-        if ( IDK_GetKey(right_key) ) {
+        if ( IDK_GetKey(idk_right_key) ) {
             
             if (IDK_PageGetCharAtCursor(TextLine->Page) == '&') IDK_PageSetCharAtCursor(TextLine->Page, TextLine->flash) ;
             
@@ -1337,7 +1343,7 @@ FILE* IDK_LoadFile( IDKLoadFileType filetype, const char* path, const char* mode
     
     the_file_path = RKMem_CArray(size1+size2+1, char) ;
     
-    sprintf(the_file_path,"%s/%s",IDKGetFilePathForThePlatform(filetype),path) ;
+    sprintf(the_file_path,"%s/%s",path_base,path) ;
     
     file = fopen(the_file_path, mode) ;
     
@@ -1353,7 +1359,7 @@ void IDK_UnloadFile( FILE* file ) {
 
 static void IDKInitLogFile( void ) {
     
-    IDKLogFile = IDK_LoadFile(idk_resource_file, "Logfile", "w") ;
+    IDKLogFile = IDK_LoadFile(idk_data_file, "Logfile", "w") ;
     
     if ( IDKLogFile == NULL ) {
         
@@ -1377,7 +1383,7 @@ static void IDKInitLogFile( void ) {
 
 static void IDKKillLogFile( void ) {
     
-     fclose(IDKLogFile) ;
+     IDK_UnloadFile(IDKLogFile) ;
 }
 
 void IDKLog( const char* string, int newline, int error ) {
