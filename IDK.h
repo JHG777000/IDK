@@ -272,8 +272,6 @@ IDKRawData IDK_GetFrame( IDKDrawArea drawarea, int *x, int * y ) ;
 
 IDKRawData IDK_Draw( IDKDrawArea area, int *x, int * y ) ;
 
-IDKRawData IDK_FastDraw( IDKDrawArea area, int *x, int * y ) ;
-
 IDKWindow IDK_GetWindowFromDrawArea( IDKDrawArea area ) ;
 
 int IDK_Timer( long* time_count, long seconds ) ;

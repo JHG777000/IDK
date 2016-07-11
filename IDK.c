@@ -1308,6 +1308,8 @@ void IDK_ChangeBackGroundColor( IDKDrawArea drawarea, float red, float blue, flo
     free(drawarea->background) ;
     
     drawarea->background = codename_NewColorObject(from_point_to_pixel(red, 255), from_point_to_pixel(blue, 255), from_point_to_pixel(green, 255)) ;
+    
+    JHGPixels_SetBackGroundColor(drawarea->r_scene->pixelscene, drawarea->background->r, drawarea->background->b, drawarea->background->g) ;
 }
 
 static const char* IDKGetFilePathForThePlatform( IDKLoadFileType filetype ) {
@@ -1519,9 +1521,7 @@ IDKDrawArea IDK_NewDrawArea( IDKDrawFunc drawfunc, IDKWindow window, int width, 
     
     NewDrawArea->raster_size = MAX_JHG(width, height) ;
     
-    NewDrawArea->background = codename_NewColorObject(0, 0, 0) ;
-    
-    IDK_ChangeBackGroundColor(NewDrawArea,red,blue,green) ;
+    NewDrawArea->background = codename_NewColorObject(red,blue,green) ;
     
     NewDrawArea->r_scene = new_r_scene(width, height, NewDrawArea->background) ;
     
@@ -1562,18 +1562,7 @@ JHGPixels_scene IDK_GetPixelScene( IDKDrawArea area ) {
 
 IDKRawData IDK_Draw( IDKDrawArea area, int *x, int * y ) {
     
-    JHGPixels_SetBackGroundColor(area->r_scene->pixelscene, area->background->r, area->background->b, area->background->g) ;
-    
-    if (IDK_GetdoDisplayNeedUpdate())JHGPixels_ResetWithBackGround(area->r_scene->pixelscene) ;
-    
-    area->drawfunc(area) ;
-    
-    return IDK_GetFrame(area, x, y) ;
-}
-
-IDKRawData IDK_FastDraw( IDKDrawArea area, int *x, int * y ) {
-    
-    if (IDK_GetdoDisplayNeedUpdate())JHGPixels_ResetWithNoBackGround(area->r_scene->pixelscene) ;
+    if (IDK_GetdoDisplayNeedUpdate())JHGPixels_Reset(area->r_scene->pixelscene) ;
     
     area->drawfunc(area) ;
     
