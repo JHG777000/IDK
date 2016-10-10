@@ -34,6 +34,7 @@
 
 
 #include "RKMem.h"
+#include "RKMath.h"
 #include "RKTasks.h"
 #include "codename.h"
 
@@ -232,6 +233,8 @@ void IDK_DestroyDrawArea( IDKDrawArea area ) ;
 
 JHGPixels_scene IDK_GetPixelScene( IDKDrawArea area ) ;
 
+raster_scene IDK_GetRasterScene( IDKDrawArea area ) ;
+
 void IDK_SetResolution( IDKDrawArea drawarea, int width, int height ) ;
 
 IDKWindow IDK_NewWindow( int win_width, int win_height, const char* win_title, IDKRasterResizeFuncType RasterResizeFunc ) ;
@@ -261,6 +264,8 @@ void IDK_SetFullScreenFlag( IDKWindow window, int is_fullscreen ) ;
 void IDK_EnterFullscreen( IDKWindow window ) ;
 
 void IDK_ExitFullscreen( IDKWindow window ) ;
+
+char* IDK_GetFilePathForPlatform( IDKLoadFileType filetype, const char* path ) ;
 
 FILE* IDK_LoadFile( IDKLoadFileType filetype, const char* path, const char* mode ) ;
 
@@ -337,6 +342,8 @@ void IDK_Line( IDKDrawArea drawarea, float x1, float y1, float x2, float y2, flo
 void IDK_Circle( IDKDrawArea drawarea, float a, float b, float r, float red, float blue, float green ) ;
 
 void IDK_Rect( IDKDrawArea drawarea, float size_x, float size_y, float x, float y, float red, float blue, float green ) ;
+
+void IDK_Square( IDKDrawArea drawarea, float size, float x, float y, float red, float blue, float green ) ;
 
 cn_point IDK_GetPixelFromPoint( IDKDrawArea drawarea, float x, float y ) ;
 

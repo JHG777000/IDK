@@ -1325,13 +1325,11 @@ static const char* IDKGetFilePathForThePlatform( IDKLoadFileType filetype ) {
     return NULL ;    
 }
 
-FILE* IDK_LoadFile( IDKLoadFileType filetype, const char* path, const char* mode ) {
+ char* IDK_GetFilePathForPlatform( IDKLoadFileType filetype, const char* path ) {
     
     int size1 = 0 ;
     
     int size2 = 0 ;
-    
-    FILE* file = NULL ;
     
     char* the_file_path = NULL ;
     
@@ -1340,12 +1338,32 @@ FILE* IDK_LoadFile( IDKLoadFileType filetype, const char* path, const char* mode
     if ( path_base == NULL ) return NULL ;
     
     size1 = (int)strlen(path_base) ;
-
+    
     size2 = (int)strlen(path) ;
     
-    the_file_path = RKMem_CArray(size1+size2+1, char) ;
+    the_file_path = RKMem_CArray(size1+size2+2, char) ;
     
-    sprintf(the_file_path,"%s/%s",path_base,path) ;
+    #ifdef _WIN32
+    
+     sprintf(the_file_path,"%s\%s",path_base,path) ;
+     
+    #else
+     
+     sprintf(the_file_path,"%s/%s",path_base,path) ;
+     
+    #endif
+    
+    return the_file_path ;
+
+}
+
+FILE* IDK_LoadFile( IDKLoadFileType filetype, const char* path, const char* mode ) {
+    
+    FILE* file = NULL ;
+    
+    char* the_file_path = IDK_GetFilePathForPlatform(filetype, path) ;
+    
+    if ( the_file_path == NULL ) return NULL ;
     
     file = fopen(the_file_path, mode) ;
     
@@ -1521,7 +1539,7 @@ IDKDrawArea IDK_NewDrawArea( IDKDrawFunc drawfunc, IDKWindow window, int width, 
     
     NewDrawArea->raster_size = MAX_JHG(width, height) ;
     
-    NewDrawArea->background = codename_NewColorObject(red,blue,green) ;
+    NewDrawArea->background = codename_NewColorObject(red*255,blue*255,green*255) ;
     
     NewDrawArea->r_scene = new_r_scene(width, height, NewDrawArea->background) ;
     
@@ -1558,6 +1576,11 @@ void IDK_DestroyDrawArea( IDKDrawArea area ) {
 JHGPixels_scene IDK_GetPixelScene( IDKDrawArea area ) {
     
     return area->r_scene->pixelscene ;
+}
+
+raster_scene IDK_GetRasterScene( IDKDrawArea area ) {
+    
+    return area->r_scene ;
 }
 
 IDKRawData IDK_Draw( IDKDrawArea area, int *x, int * y ) {
@@ -1750,6 +1773,11 @@ void IDK_Circle( IDKDrawArea drawarea, float a, float b, float r, float red, flo
 void IDK_Rect( IDKDrawArea drawarea, float size_x, float size_y, float x, float y, float red, float blue, float green ) {
     
     cnpoint_Rect(drawarea->r_scene, from_point_to_pixel(size_x*drawarea->zoom,drawarea->rect_x), from_point_to_pixel(size_y*drawarea->zoom,drawarea->rect_y), from_point_to_pixel(x*drawarea->zoom,drawarea->rect_x), from_point_to_pixel(y*drawarea->zoom,drawarea->rect_y), from_point_to_pixel(red,255), from_point_to_pixel(blue,255), from_point_to_pixel(green,255)) ;
+}
+
+void IDK_Square( IDKDrawArea drawarea, float size, float x, float y, float red, float blue, float green ) {
+    
+    cnpoint_Rect(drawarea->r_scene, from_point_to_pixel(size*drawarea->zoom,drawarea->raster_size), from_point_to_pixel(size*drawarea->zoom,drawarea->raster_size), from_point_to_pixel(x*drawarea->zoom,drawarea->rect_x), from_point_to_pixel(y*drawarea->zoom,drawarea->rect_y), from_point_to_pixel(red,255), from_point_to_pixel(blue,255), from_point_to_pixel(green,255)) ;
 }
 
 void IDK_SetPoint( IDKDrawArea drawarea, int x, int y, float red, float blue, float green ) {
