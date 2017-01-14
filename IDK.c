@@ -32,7 +32,7 @@ IDKDrawFunc drawfunc ; IDKWindow window ; int raster_size ; int rect_x ; int rec
 
 struct IDKWindow_s { int is_fullscreen ; const void* fullscreen_state ; IDKRasterResizeFuncType RasterResizeFunc ; IDKFullScreenFuncType
     
-EnterFullScreen ; IDKFullScreenFuncType ExitFullScreen ; GLFWwindow* glfw_window ; } ;
+EnterFullScreen ; IDKFullScreenFuncType ExitFullScreen ; GLFWwindow* glfw_window ; void* ptr ; } ;
 
 static IDKGetTimeHPFuncType IDKGetTimeHPFunc_ = NULL ;
 
@@ -499,7 +499,7 @@ static void IDKFramebufferSizeCallback(GLFWwindow* window, int width, int height
    
     IDKWindow idk_window = (IDKWindow)glfwGetWindowUserPointer(window) ;
     
-    idk_window->RasterResizeFunc(width,height) ;
+    idk_window->RasterResizeFunc(idk_window,width,height) ;
 }
 
 static GLFWwindow* IDK_MakeGLFWWindow( int win_width, int win_height, const char* win_title ) {
@@ -558,6 +558,11 @@ void IDK_DisableVsync( IDKWindow window ) {
     glfwSwapInterval(0) ;
 }
 
+void IDK_SetWindowContextCurrent( IDKWindow window ) {
+    
+    glfwMakeContextCurrent(window->glfw_window) ;
+}
+
 void IDK_CloseWindow( IDKWindow window ) {
     
     glfwSetWindowShouldClose(window->glfw_window, 1) ;
@@ -600,6 +605,16 @@ void IDK_WindowRunLoop( IDKWindow window, IDKWindowRunLoopFuncType IDKWindowRunL
 void* IDK_GetPtrToGLFWWindow( IDKWindow window ) {
     
     return (void*)window->glfw_window ;
+}
+
+void IDK_SetPtrFromWindow( IDKWindow window, void* ptr ) {
+    
+    window->ptr = ptr ;
+}
+
+void* IDK_GetPtrFromWindow( IDKWindow window ) {
+    
+    return window->ptr ;
 }
 
 IDKWindow IDK_NewWindow( int win_width, int win_height, const char* win_title, IDKRasterResizeFuncType RasterResizeFunc ) {

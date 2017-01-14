@@ -48,7 +48,7 @@ typedef struct IDKWindow_s* IDKWindow ;
 
 typedef void (*IDKFullScreenFuncType)( const void* fullscreen_state) ;
 
-typedef void (*IDKRasterResizeFuncType)(int width, int height) ;
+typedef void (*IDKRasterResizeFuncType)(IDKWindow window, int width, int height) ;
 
 typedef void (*IDKWindowRunLoopFuncType)(void) ;
 
@@ -245,6 +245,8 @@ void IDK_EnableVsync( IDKWindow window ) ;
 
 void IDK_DisableVsync( IDKWindow window ) ;
 
+void IDK_SetWindowContextCurrent( IDKWindow window ) ;
+
 void IDK_CloseWindow( IDKWindow window ) ;
 
 void IDK_WindowRunLoop( IDKWindow window, IDKWindowRunLoopFuncType IDKWindowRunLoopFunc, IDKWindowQuitRunLoopFuncType IDKWindowQuitRunLoopFunc ) ;
@@ -252,6 +254,10 @@ void IDK_WindowRunLoop( IDKWindow window, IDKWindowRunLoopFuncType IDKWindowRunL
 void IDK_WindowRunLoopWithTime( IDKWindow window, double seconds, IDKWindowRunLoopFuncType IDKWindowRunLoopFunc, IDKWindowQuitRunLoopFuncType IDKWindowQuitRunLoopFunc ) ;
 
 void* IDK_GetPtrToGLFWWindow( IDKWindow window ) ;
+
+void IDK_SetPtrFromWindow( IDKWindow window, void* ptr ) ;
+
+void* IDK_GetPtrFromWindow( IDKWindow window ) ;
 
 void IDK_SetWindowSize( IDKWindow window, int width, int height ) ;
 
