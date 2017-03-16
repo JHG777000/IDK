@@ -1614,14 +1614,14 @@ IDKWindow IDK_GetWindowFromDrawArea( IDKDrawArea area ) {
 
 void IDK_SpawnThreads( IDKDrawArea area ) {
     
-    if ( area->Threads == NULL ) area->Threads = RKTasks_NewThreadGroup(1, 8, 4, 1, 5) ;
+    if ( area->Threads == NULL ) area->Threads = RKTasks_NewThreadGroup(10) ;
 }
 
 void IDK_KillThreads( IDKDrawArea area ) {
     
     if ( area->Threads != NULL ) {
         
-        RKTasks_KillThreadGroup(area->Threads)  ;
+        RKTasks_DestroyThreadGroup(area->Threads)  ;
         
         area->Threads = NULL ;
     }
