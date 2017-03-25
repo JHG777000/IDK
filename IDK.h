@@ -34,6 +34,7 @@
 
 
 #include "RKMem.h"
+#include "RKArgs.h"
 #include "RKMath.h"
 #include "RKTasks.h"
 #include "codename.h"
@@ -236,6 +237,8 @@ JHGPixels_scene IDK_GetPixelScene( IDKDrawArea area ) ;
 raster_scene IDK_GetRasterScene( IDKDrawArea area ) ;
 
 void IDK_SetResolution( IDKDrawArea drawarea, int width, int height ) ;
+
+void IDK_SetRasterResizeFunc( IDKWindow window, IDKRasterResizeFuncType RasterResizeFunc ) ;
 
 IDKWindow IDK_NewWindow( int win_width, int win_height, const char* win_title, IDKRasterResizeFuncType RasterResizeFunc ) ;
 

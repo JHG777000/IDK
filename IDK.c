@@ -499,7 +499,7 @@ static void IDKFramebufferSizeCallback(GLFWwindow* window, int width, int height
    
     IDKWindow idk_window = (IDKWindow)glfwGetWindowUserPointer(window) ;
     
-    idk_window->RasterResizeFunc(idk_window,width,height) ;
+    if (idk_window->RasterResizeFunc != NULL) idk_window->RasterResizeFunc(idk_window,width,height) ;
 }
 
 static GLFWwindow* IDK_MakeGLFWWindow( int win_width, int win_height, const char* win_title ) {
@@ -615,6 +615,11 @@ void IDK_SetPtrFromWindow( IDKWindow window, void* ptr ) {
 void* IDK_GetPtrFromWindow( IDKWindow window ) {
     
     return window->ptr ;
+}
+
+void IDK_SetRasterResizeFunc( IDKWindow window, IDKRasterResizeFuncType RasterResizeFunc ) {
+    
+    window->RasterResizeFunc = RasterResizeFunc ;
 }
 
 IDKWindow IDK_NewWindow( int win_width, int win_height, const char* win_title, IDKRasterResizeFuncType RasterResizeFunc ) {

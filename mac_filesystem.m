@@ -39,6 +39,8 @@ static const char* get_AppSupport_mac( void ) {
         
         NSString* the_bundle_id = [NSBundle mainBundle].bundleIdentifier ;
         
+        if ( the_bundle_id == NULL ) the_bundle_id = @"IDKBundleIdentifier" ;
+        
         app_path = [the_appsupport_dir URLByAppendingPathComponent:the_bundle_id];
     }
     
