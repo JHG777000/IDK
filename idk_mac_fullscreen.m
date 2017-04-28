@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2016 Jacob Gordon. All rights reserved.
+ Copyright (c) 2017 Jacob Gordon. All rights reserved.
  
  Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
  
@@ -53,16 +53,18 @@ void IDKKillFullScreenForMac( const void* fullscreen_state ) {
                                                  name:NSWindowWillExitFullScreenNotification object:nil] ;
 }
 
+  void IDKSetFullScreenFlag( IDKWindow window, int is_fullscreen ) ;
+
 - (void)FullScreener:(NSNotification *)notification {
     
-    IDK_SetFullScreenFlag(self.idk_window,1) ;
+    IDKSetFullScreenFlag(self.idk_window,1) ;
     
     [NSCursor hide] ;
 }
 
 - (void)Windower:(NSNotification *)notification {
     
-    IDK_SetFullScreenFlag(self.idk_window,0) ;
+    IDKSetFullScreenFlag(self.idk_window,0) ;
     
     [NSCursor unhide] ;
 }

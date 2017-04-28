@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2016 Jacob Gordon. All rights reserved.
+ Copyright (c) 2017 Jacob Gordon. All rights reserved.
  
  Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
  
@@ -15,61 +15,91 @@
  TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
 #include "IDK.h"
 
-static FILE* IDKLogFile = NULL ;
+typedef struct IDKFPSState_s { int init ; int numofframes ; double time_count ; double fps ; }* IDKFPSState ;
 
-static IDKInitErrorCallBackFuncType InitErrorCallBackFunc = NULL ;
-
-struct IDKDrawArea_s { RKTasks_ThreadGroup Threads ; codename_pixelcolor background ; raster_scene r_scene ;
+struct IDKApp_s { RKString AppName ; IDKFPSState lowp_fps ; IDKFPSState highp_fps ;IDKGetTimeHPFuncType IDKGetTimeHPFunc ;
     
-IDKDrawFunc drawfunc ; IDKWindow window ; int raster_size ; int rect_x ; int rect_y ; float size_x ; float size_y ; float zoom ; } ;
+IDKErrorCallBackFuncType ErrorCallBackFunc ; FILE* LogFile ; float Version ; RKTasks_ThreadGroup Threads ;  } ;
 
-struct IDKWindow_s { int is_fullscreen ; const void* fullscreen_state ; IDKRasterResizeFuncType RasterResizeFunc ; IDKFullScreenFuncType
+struct IDKWindow_s { IDKApp App ; int is_fullscreen ; const void* fullscreen_state ; IDKRasterResizeFuncType RasterResizeFunc ; IDKFullScreenFuncType
     
-EnterFullScreen ; IDKFullScreenFuncType ExitFullScreen ; GLFWwindow* glfw_window ; void* ptr ; } ;
+EnterFullScreen ; IDKFullScreenFuncType ExitFullScreen ; GLFWwindow* glfw_window ; void* ptr ;  RKList PageList ; int* KeyArray ; int MouseLeft ; int MouseMiddle ;
 
-static IDKGetTimeHPFuncType IDKGetTimeHPFunc_ = NULL ;
+int MouseRight ; int  MouseActive ; float MouseX  ; float MouseY ; } ;
 
-struct IDK_Page_s { char* text ; int num_of_text ; int new ; int max_num_of_text ; int cursor ; float pos ; int init ; int mode ; RKList_node node ; } ;
+struct IDK_Page_s { IDKWindow window ; char* text ; int num_of_text ; int new ; int max_num_of_text ; int cursor ; float pos ; int init ; int mode ; RKList_node node ; } ;
 
 struct IDK_Line_s { IDKPage Page ; int mode ; char flash ; int lock ; } ;
 
-static RKList PageList = NULL ;
+static const char* idk_error_string = " " ;
 
-static const char* idk_string_error = " " ;
+static RKList AppList = NULL ;
 
-static int num_of_keys = 100 ;
+static void IDKPlatformInit( IDKApp App, int mode ) ;
 
-static int* key_array = NULL ;
+static void IDKInitLogFile( IDKApp App ) ;
 
-static int left = 0 ;
+static void IDKKillLogFile( IDKApp App ) ;
 
-static int middle = 0 ;
+IDKApp IDK_NewApp( RKString AppName, float Version, IDKErrorCallBackFuncType ErrorCallBackFunc ) {
+    
+    IDKApp App = RKMem_NewMemOfType(struct IDKApp_s) ;
+    
+    App->ErrorCallBackFunc = ErrorCallBackFunc ;
+    
+    App->IDKGetTimeHPFunc = glfwGetTime ;
+    
+    App->AppName = AppName ;
+    
+    App->Version = Version ;
+    
+    App->Threads = NULL ;
+    
+    App->LogFile = NULL ;
+    
+    App->lowp_fps = NULL ;
+    
+    App->highp_fps = NULL ;
+    
+    IDKInitLogFile(App) ;
+    
+    IDKPlatformInit(App, 1) ;
+    
+    return App ;
+}
 
-static int right = 0 ;
+void IDK_DestroyApp( IDKApp App ) {
+    
+    free(App->lowp_fps) ;
+    
+    free(App->highp_fps) ;
+    
+    IDKPlatformInit(App, 0) ;
+    
+    IDKKillLogFile(App) ;
+    
+    IDK_KillThreads(App) ;
+    
+    RKString_DestroyString(App->AppName) ;
+    
+    free(App) ;
+}
 
-static int forceupdate = 0 ;
+RKString IDK_GetAppName( IDKApp App ) {
+    
+    return App->AppName ;
+}
 
-static int idk_refresh = 1 ;
-
-static int active = 0 ;
-
-static float MouseX = 0 ;
-
-static float MouseY = 0 ;
-
-static float oldX = 0 ;
-
-static float oldY = 0 ;
-
-static void IDK_PlatformInit( int mode ) ;
-
+float IDK_GetAppVersion( IDKApp App ) {
+    
+    return App->Version ;
+}
 
 int IDK_Timer( long* time_count, long seconds ) {
     
@@ -85,13 +115,13 @@ int IDK_Timer( long* time_count, long seconds ) {
     return 0 ;
 }
 
-int IDK_Timer_HP( double* time_count, double seconds ) {
+int IDK_Timer_HP( IDKApp App, double* time_count, double seconds ) {
     
-    double the_time = IDK_GetTimeHP() - (*time_count) ;
+    double the_time = IDK_GetTimeHP(App) - (*time_count) ;
     
     if ( the_time >= seconds ) {
         
-        (*time_count) = IDK_GetTimeHP() ;
+        (*time_count) = IDK_GetTimeHP(App) ;
         
         return 1 ;
     }
@@ -99,331 +129,451 @@ int IDK_Timer_HP( double* time_count, double seconds ) {
     return 0 ;
 }
 
-int IDK_Flip( int* flip ) {
+void IDK_SetInitErrorCallback( IDKApp App, IDKErrorCallBackFuncType ErrorCallBackFunc ) {
     
-    *flip = !(*flip) ;
-    
-    return *flip ;
-}
-
-void IDK_SetInitErrorCallback( IDKInitErrorCallBackFuncType InitErrorCallBack ) {
-    
-    InitErrorCallBackFunc = InitErrorCallBack ;
+    App->ErrorCallBackFunc = ErrorCallBackFunc ;
 }
 
 static void IDKErrorCallbackForGLFW(int error, const char* description) {
     
-    IDKLog("GLFW Error: ", 0, 1) ;
+    IDKApp App = NULL ;
     
-    IDKLogInt(error, 0, 1) ;
+    RKList_node node = RKList_GetFirstNode(AppList) ;
     
-    IDKLog(" with description, ", 0, 1) ;
+    while (node != NULL) {
+        
+        App = RKList_GetData(node) ;
+        
+        IDKLog(App, "GLFW Error: ", 0, 1) ;
+        
+        IDKLogInt(App, error, 0, 1) ;
+        
+        IDKLog(App, " with description, ", 0, 1) ;
+        
+        IDKLog(App, description, 1, 1) ;
+        
+        if (App->ErrorCallBackFunc != NULL) App->ErrorCallBackFunc(App,idk_glfw_error) ;
+        
+        node = RKList_GetNextNode(node) ;
+    }
     
-    IDKLog(description, 1, 1) ;
+}
+
+static void IDKAllocKeyboard( IDKWindow window ) {
+    
+    int i = 0 ;
+    
+    int num_of_keys = 100 ;
+    
+    window->KeyArray = RKMem_CArray(num_of_keys, int) ;
+    
+    while ( i < num_of_keys ) {
+        
+        window->KeyArray[i] = 0 ;
+        
+        i++ ;
+    }
+}
+
+static void IDKDeallocKeyboard( IDKWindow window ) {
+    
+    free(window->KeyArray) ;
+}
+
+static void IDK_SetKey( IDKWindow window, int key ) {
+    
+    window->KeyArray[key] = 1 ;
+}
+
+int IDK_GetKey( IDKWindow window, int key ) {
+    
+    return window->KeyArray[key] ;
+}
+
+static void IDK_ResetKey( IDKWindow window, int key ) {
+    
+    window->KeyArray[key] = 0 ;
+}
+
+static void IDK_SetLeftMouseButton( IDKWindow window ) {
+    
+    window->MouseLeft = 1 ;
+}
+
+static void IDK_ResetLeftMouseButton( IDKWindow window ) {
+    
+    window->MouseLeft = 0 ;
+}
+
+int IDK_GetLeftMouseButton( IDKWindow window ) {
+    
+    return window->MouseLeft ;
+}
+
+static void IDK_SetRightMouseButton( IDKWindow window ) {
+    
+    window->MouseRight = 1 ;
+}
+
+static void IDK_ResetRightMouseButton( IDKWindow window ) {
+    
+    window->MouseRight = 0 ;
+}
+
+int IDK_GetRightMouseButton( IDKWindow window ) {
+    
+    return window->MouseRight ;
+}
+
+static void IDK_ResetMiddleMouseButton( IDKWindow window ) {
+    
+    window->MouseMiddle = 0 ;
+}
+
+static void IDK_SetMiddleMouseButton( IDKWindow window ) {
+    
+    window->MouseMiddle = 1 ;
+}
+
+int IDK_GetMiddleMouseButton( IDKWindow window ) {
+    
+    return window->MouseMiddle ;
+}
+
+float IDK_GetMouseX( IDKWindow window ) {
+    
+    return window->MouseX ;
+}
+
+float IDK_GetMouseY( IDKWindow window ) {
+    
+    return window->MouseY ;
+}
+
+static void IDKtheMouse( IDKWindow window, float x, float y ) {
+    
+    if (window->MouseActive) {
+        
+        window->MouseX = x ;
+        
+        window->MouseY = y ;
+    }
+}
+
+void IDK_setMouseActive( IDKWindow window ) {
+    
+    window->MouseActive = 1 ;
+}
+
+void IDK_setMouseInactive( IDKWindow window ) {
+    
+    window->MouseActive = 0 ;
 }
 
 static void IDKKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    
+    IDKWindow idk_window = glfwGetWindowUserPointer(window) ;
     
     switch (key) {
             
         case GLFW_KEY_A:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_a_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_a_key) ;
             
             break;
             
         case GLFW_KEY_B:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_b_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_b_key) ;
             
             break;
             
         case GLFW_KEY_C:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_c_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_c_key) ;
             
             break;
             
         case GLFW_KEY_D:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_d_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_d_key) ;
             
             break;
             
         case GLFW_KEY_E:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_e_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_e_key) ;
             
             break;
             
         case GLFW_KEY_F:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_f_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_f_key) ;
             
             break;
             
         case GLFW_KEY_G:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_g_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_g_key) ;
             
             break;
             
         case GLFW_KEY_H:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_h_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_h_key) ;
             
             break;
             
             
         case GLFW_KEY_I:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_i_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_i_key) ;
             
             break;
             
         case GLFW_KEY_J:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_j_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_j_key) ;
             
             break;
             
         case GLFW_KEY_K:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_k_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_k_key) ;
             
             break;
             
         case GLFW_KEY_L:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_l_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_l_key) ;
             
             break;
             
         case GLFW_KEY_M:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_m_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_m_key) ;
             
             break;
             
         case GLFW_KEY_N:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_n_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_n_key) ;
             
             break;
             
         case GLFW_KEY_O:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_o_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_o_key) ;
             
             break;
             
         case GLFW_KEY_P:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_p_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_p_key) ;
             
             break;
             
         case GLFW_KEY_Q:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_q_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_q_key) ;
             
             break;
             
         case GLFW_KEY_R:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_r_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_r_key) ;
             
             break;
             
         case GLFW_KEY_S:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_s_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_s_key) ;
             
             break;
             
         case GLFW_KEY_T:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_t_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_t_key) ;
             
             break;
             
         case GLFW_KEY_U:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_u_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_u_key) ;
             
             break;
             
         case GLFW_KEY_V:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_v_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_v_key) ;
             
             break;
             
         case GLFW_KEY_W:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_w_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_w_key) ;
             
             break;
             
         case GLFW_KEY_X:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_x_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_x_key) ;
             
             break;
             
         case GLFW_KEY_Y:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_y_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_y_key) ;
             
             break;
             
         case GLFW_KEY_Z:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_z_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_z_key) ;
             
             break;
             
         case GLFW_KEY_RIGHT:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_right_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_right_key) ;
             
             break;
             
         case GLFW_KEY_LEFT:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_left_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_left_key) ;
             
             break;
             
         case GLFW_KEY_UP:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_up_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_up_key) ;
             
             break;
             
         case GLFW_KEY_DOWN:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_down_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_down_key) ;
             
             break;
             
         case GLFW_KEY_KP_1:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_1) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_1) ;
             
             break;
             
         case GLFW_KEY_KP_2:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_2) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_2) ;
             
             break;
             
         case GLFW_KEY_KP_3:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_3) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_3) ;
             
             break;
             
         case GLFW_KEY_KP_4:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_4) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_4) ;
             
             break;
             
         case GLFW_KEY_KP_5:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_5) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_5) ;
             
             break;
             
         case GLFW_KEY_KP_6:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_6) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_6) ;
             
             break;
             
         case GLFW_KEY_KP_7:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_7) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_7) ;
             
             break;
             
         case GLFW_KEY_KP_8:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_8) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_8) ;
             
             break;
             
         case GLFW_KEY_KP_9:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_9) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_numpad_9) ;
             
             break;
             
         case GLFW_KEY_BACKSPACE:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_bs_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_bs_key) ;
             
             break;
             
         case GLFW_KEY_SPACE:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_space_key) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_space_key) ;
             
             break;
             
         case GLFW_KEY_1:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_key_1) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_key_1) ;
             
             break;
             
         case GLFW_KEY_2:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_key_2) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_key_2) ;
             
             break;
             
         case GLFW_KEY_3:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_key_3) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_key_3) ;
             
             break;
             
         case GLFW_KEY_4:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_key_4) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_key_4) ;
             
             break;
             
         case GLFW_KEY_5:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_key_5) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_key_5) ;
             
             break;
             
         case GLFW_KEY_6:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_key_6) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_key_6) ;
             
             break;
             
         case GLFW_KEY_7:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_key_7) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_key_7) ;
             
             break;
             
         case GLFW_KEY_8:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_key_8) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_key_8) ;
             
             break;
 
         case GLFW_KEY_9:
             
-            IDK_KeyboardMacro(action, GLFW_PRESS, GLFW_RELEASE, idk_key_9) ;
+            IDK_KeyboardMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, idk_key_9) ;
             
             break;
             
@@ -435,7 +585,9 @@ static void IDKKeyCallback(GLFWwindow* window, int key, int scancode, int action
 
 static void IDKCharacterCallback(GLFWwindow* window, unsigned int codepoint) {
     
-    IDK_AddCharToPageList((char)codepoint) ;
+    IDKWindow idk_window = glfwGetWindowUserPointer(window) ;
+    
+    IDK_AddCharToPageList(idk_window, (char)codepoint) ;
 }
 
 static void IDKMouseFunc(IDKWindow window, double x, double y) {
@@ -452,30 +604,38 @@ static void IDKMouseFunc(IDKWindow window, double x, double y) {
     
     y = y/WinHeight ;
     
-    IDK_theMouse(x,y) ;
+    IDKtheMouse(window,x,y) ;
 }
 
 static void IDKCursorPositionCallback(GLFWwindow* window, double xpos, double ypos) {
     
-    IDKWindow idk_window = (IDKWindow)glfwGetWindowUserPointer(window) ;
+    IDKWindow idk_window = glfwGetWindowUserPointer(window) ;
     
     IDKMouseFunc(idk_window, xpos, ypos) ;
 }
 
 static void IDKMouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
     
+    IDKWindow idk_window = glfwGetWindowUserPointer(window) ;
+    
     switch (button) {
             
         case GLFW_MOUSE_BUTTON_RIGHT:
-            IDK_MouseMacro(action,GLFW_PRESS,GLFW_RELEASE,Right) ;
+            
+            IDK_MouseMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, Right) ;
+            
             break;
             
         case GLFW_MOUSE_BUTTON_LEFT:
-            IDK_MouseMacro(action,GLFW_PRESS,GLFW_RELEASE,Left) ;
+            
+            IDK_MouseMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, Left) ;
+            
             break;
             
         case GLFW_MOUSE_BUTTON_MIDDLE:
-            IDK_MouseMacro(action,GLFW_PRESS,GLFW_RELEASE,Middle) ;
+            
+            IDK_MouseMacro(idk_window, action, GLFW_PRESS, GLFW_RELEASE, Middle) ;
+            
             break;
             
         default:
@@ -485,13 +645,15 @@ static void IDKMouseButtonCallback(GLFWwindow* window, int button, int action, i
 
 static void IDKCursorEnterCallback(GLFWwindow* window, int entered) {
     
+    IDKWindow idk_window = glfwGetWindowUserPointer(window) ;
+    
     if (entered) {
         
-        IDK_setMouseActive() ;
+        IDK_setMouseActive(idk_window) ;
         
     } else {
         
-        IDK_setMouseInactive() ;
+        IDK_setMouseInactive(idk_window) ;
     }
 }
 
@@ -502,7 +664,7 @@ static void IDKFramebufferSizeCallback(GLFWwindow* window, int width, int height
     if (idk_window->RasterResizeFunc != NULL) idk_window->RasterResizeFunc(idk_window,width,height) ;
 }
 
-static GLFWwindow* IDK_MakeGLFWWindow( int win_width, int win_height, const char* win_title ) {
+static GLFWwindow* IDKMakeGLFWWindow( IDKApp App, int win_width, int win_height, const char* win_title ) {
     
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,3);
     
@@ -516,7 +678,7 @@ static GLFWwindow* IDK_MakeGLFWWindow( int win_width, int win_height, const char
     
     if (!window) {
         
-        if ( InitErrorCallBackFunc != NULL ) InitErrorCallBackFunc() ;
+        if ( App->ErrorCallBackFunc != NULL ) App->ErrorCallBackFunc(App, idk_window_error) ;
         
         glfwTerminate() ;
         
@@ -568,43 +730,43 @@ void IDK_CloseWindow( IDKWindow window ) {
     glfwSetWindowShouldClose(window->glfw_window, 1) ;
 }
 
-void IDK_WindowRunLoopWithTime( IDKWindow window, double seconds, IDKWindowRunLoopFuncType IDKWindowRunLoopFunc, IDKWindowQuitRunLoopFuncType IDKWindowQuitRunLoopFunc ) {
+void IDK_WindowRunLoopWithTime( IDKWindow window, double seconds, IDKWindowRunLoopFuncType IDKWindowRunLoopFunc, RKArgs RunArgs, IDKWindowQuitRunLoopFuncType IDKWindowQuitRunLoopFunc, RKArgs QuitArgs ) {
     
-    double time_count = IDK_GetTimeHP() ;
+    double time_count = IDK_GetTimeHP(window->App) ;
     
     while (!glfwWindowShouldClose(window->glfw_window)) {
     
-        if ( IDK_Timer_HP(&time_count, seconds) ) {
+        if ( IDK_Timer_HP(window->App, &time_count, seconds) ) {
         
            glfwPollEvents() ;
         
-           IDKWindowRunLoopFunc() ;
+           IDKWindowRunLoopFunc(RunArgs) ;
         
            glfwSwapBuffers(window->glfw_window) ;
             
         }
     }
     
-    IDKWindowQuitRunLoopFunc() ;
+    IDKWindowQuitRunLoopFunc(QuitArgs) ;
 }
 
-void IDK_WindowRunLoop( IDKWindow window, IDKWindowRunLoopFuncType IDKWindowRunLoopFunc, IDKWindowQuitRunLoopFuncType IDKWindowQuitRunLoopFunc ) {
+void IDK_WindowRunLoop( IDKWindow window, IDKWindowRunLoopFuncType IDKWindowRunLoopFunc, RKArgs RunArgs, IDKWindowQuitRunLoopFuncType IDKWindowQuitRunLoopFunc, RKArgs QuitArgs ) {
     
     while (!glfwWindowShouldClose(window->glfw_window)) {
         
         glfwPollEvents() ;
         
-        IDKWindowRunLoopFunc() ;
+        IDKWindowRunLoopFunc(RunArgs) ;
         
         glfwSwapBuffers(window->glfw_window) ;
     }
     
-    IDKWindowQuitRunLoopFunc() ;
+    IDKWindowQuitRunLoopFunc(QuitArgs) ;
 }
 
 void* IDK_GetPtrToGLFWWindow( IDKWindow window ) {
     
-    return (void*)window->glfw_window ;
+    return window->glfw_window ;
 }
 
 void IDK_SetPtrFromWindow( IDKWindow window, void* ptr ) {
@@ -617,22 +779,47 @@ void* IDK_GetPtrFromWindow( IDKWindow window ) {
     return window->ptr ;
 }
 
+IDKApp IDK_GetAppFromWindow( IDKWindow window ) {
+    
+    return window->App ;
+}
+
 void IDK_SetRasterResizeFunc( IDKWindow window, IDKRasterResizeFuncType RasterResizeFunc ) {
     
     window->RasterResizeFunc = RasterResizeFunc ;
 }
 
-IDKWindow IDK_NewWindow( int win_width, int win_height, const char* win_title, IDKRasterResizeFuncType RasterResizeFunc ) {
+IDKWindow IDK_NewWindow( IDKApp App, int win_width, int win_height, const char* win_title, IDKRasterResizeFuncType RasterResizeFunc ) {
    
-    IDK_PlatformInit(1) ;
+    IDKPlatformInit(App, 1) ;
     
     IDKWindow NewWindow = RKMem_NewMemOfType(struct IDKWindow_s) ;
+    
+    NewWindow->App = App ;
+    
+    NewWindow->PageList = RKList_NewList() ;
+    
+    NewWindow->KeyArray = NULL ;
+    
+    NewWindow->MouseActive = 0 ;
+    
+    NewWindow->MouseLeft = 0 ;
+    
+    NewWindow->MouseMiddle = 0 ;
+    
+    NewWindow->MouseRight = 0 ;
+    
+    NewWindow->MouseX = 0 ;
+    
+    NewWindow->MouseY = 0 ;
+    
+    IDKAllocKeyboard(NewWindow) ;
     
     NewWindow->is_fullscreen = 0 ;
     
     NewWindow->RasterResizeFunc = RasterResizeFunc ;
     
-    NewWindow->glfw_window = IDK_MakeGLFWWindow( win_width, win_height, win_title ) ;
+    NewWindow->glfw_window = IDKMakeGLFWWindow( App, win_width, win_height, win_title ) ;
     
     glfwSetWindowUserPointer( NewWindow->glfw_window, (void*)NewWindow ) ;
     
@@ -665,7 +852,11 @@ void IDK_DestroyWindow( IDKWindow window ) {
     
     #endif
     
-    IDK_PlatformInit(0) ;
+    IDKDeallocKeyboard(window) ;
+    
+    RKList_DeleteList(window->PageList) ;
+    
+    IDKPlatformInit(window->App, 0) ;
     
     free(window) ;
 }
@@ -685,7 +876,7 @@ void IDK_GetRasterSize( IDKWindow window, int* width, int* height ) {
     glfwGetFramebufferSize(window->glfw_window, width, height) ;
 }
 
-void IDK_SetFullScreenFlag( IDKWindow window, int is_fullscreen ) {
+void IDKSetFullScreenFlag( IDKWindow window, int is_fullscreen ) {
     
     if ( is_fullscreen ) {
         
@@ -701,7 +892,7 @@ void IDK_EnterFullscreen( IDKWindow window ) {
         
   if (!(window->is_fullscreen)) {
            
-     IDK_SetFullScreenFlag(window,1) ;
+     IDKSetFullScreenFlag(window,1) ;
             
      window->EnterFullScreen(window->fullscreen_state) ;
   }
@@ -711,7 +902,7 @@ void IDK_ExitFullscreen( IDKWindow window ) {
     
   if ((window->is_fullscreen)) {
             
-     IDK_SetFullScreenFlag(window,0) ;
+     IDKSetFullScreenFlag(window,0) ;
             
      window->ExitFullScreen(window->fullscreen_state) ;
   }
@@ -750,7 +941,7 @@ const char* IDK_GetTextLine( IDKTextLine TextLine ) {
     
     IDK_PageSetMode(TextLine->Page, TextLine->mode) ;
     
-        if ( IDK_GetKey(idk_left_key) ) {
+        if ( IDK_GetKey(TextLine->Page->window, idk_left_key) ) {
             
             if (IDK_PageGetCharAtCursor(TextLine->Page) == '&') IDK_PageSetCharAtCursor(TextLine->Page, TextLine->flash) ;
             
@@ -759,7 +950,7 @@ const char* IDK_GetTextLine( IDKTextLine TextLine ) {
             TextLine->lock = 0 ;
         }
         
-        if ( IDK_GetKey(idk_right_key) ) {
+        if ( IDK_GetKey(TextLine->Page->window, idk_right_key) ) {
             
             if (IDK_PageGetCharAtCursor(TextLine->Page) == '&') IDK_PageSetCharAtCursor(TextLine->Page, TextLine->flash) ;
             
@@ -789,11 +980,13 @@ const char* IDK_GetTextLine( IDKTextLine TextLine ) {
     return IDK_PageGetString(TextLine->Page) ;
 }
 
-IDKPage IDK_NewPage( int max_num_of_text ) {
+IDKPage IDK_NewPage( IDKWindow window, int max_num_of_text ) {
     
     IDKPage Page = RKMem_NewMemOfType(struct IDK_Page_s) ;
     
     Page->max_num_of_text = max_num_of_text+1 ;
+    
+    Page->window = window ;
     
     Page->num_of_text = 0 ;
     
@@ -809,7 +1002,7 @@ IDKPage IDK_NewPage( int max_num_of_text ) {
     
     Page->text = NULL ;
     
-    Page->node = RKList_AddToList(PageList, (void*)Page) ;
+    Page->node = RKList_AddToList(window->PageList, (void*)Page) ;
     
     return Page ;
     
@@ -817,16 +1010,16 @@ IDKPage IDK_NewPage( int max_num_of_text ) {
 
 void IDK_DestroyPage( IDKPage Page ) {
     
-    RKList_DeleteNode(PageList, Page->node) ;
+    RKList_DeleteNode(Page->window->PageList, Page->node) ;
     
     free( Page->text ) ;
     
     free( Page ) ;
 }
 
-void IDK_AddCharToPageList( char c ) {
+void IDK_AddCharToPageList( IDKWindow window, char c ) {
     
-    RKList_node node = RKList_GetFirstNode(PageList) ;
+    RKList_node node = RKList_GetFirstNode(window->PageList) ;
     
     IDKPage Page = NULL ;
     
@@ -933,315 +1126,117 @@ char IDK_PageGetCharAtCursor( IDKPage Page ) {
 
 const char* IDK_PageGetString( IDKPage Page ) {
     
-    if ( Page->text == NULL ) return idk_string_error ;
+    if ( Page->text == NULL ) return idk_error_string ;
     
     return Page->text ;
 }
 
-static void IDKAllocKeyboard( void ) {
+double IDK_GetTimeHP( IDKApp App ) {
     
-    int i = 0 ;
-    
-    key_array = RKMem_CArray(num_of_keys, int) ;
-    
-    while ( i < num_of_keys ) {
-        
-        key_array[i] = 0 ;
-        
-        i++ ;
-    }
+    return App->IDKGetTimeHPFunc() ;
 }
 
-static void IDKDeallocKeyboard( void ) {
-    
-    free(key_array) ;
-}
-
-void IDK_SetKey( int key ) {
-    
-    key_array[key] = 1 ;
-}
-
-int IDK_GetKey( int key ) {
-    
-    return key_array[key] ;
-}
-
-void IDK_ResetKey( int key ) {
-
-     key_array[key] = 0 ;
-}
-
-void IDK_SetLeftMouseButton(void) {
-    
-    left = 1 ;
-}
-
-void IDK_ResetLeftMouseButton(void) {
-    
-    left = 0 ;
-}
-
-int IDK_GetLeftMouseButton(void) {
-    
-    return left ;
-}
-
-void IDK_SetRightMouseButton(void) {
-    
-    right = 1 ;
-}
-
-void IDK_ResetRightMouseButton(void) {
-    
-    right = 0 ;
-}
-
-int IDK_GetRightMouseButton(void) {
-    
-    return right ;
-}
-
-void IDK_ResetMiddleMouseButton(void) {
-    
-    middle = 0 ;
-}
-
-void IDK_SetMiddleMouseButton(void) {
-    
-    middle = 1 ;
-}
-
-int IDK_GetMiddleMouseButton(void) {
-    
-    return middle ;
-}
-
-float IDK_GetMouseX( void ) {
-    
-    return MouseX ;
-}
-
-float IDK_GetMouseY( void ) {
-    
-    return MouseY ;
-}
-
-void IDK_theMouse( float x, float y ) {
-    
-    if (active) {
-        
-        MouseX = x ;
-        
-        MouseY = y ;
-    }
-}
-
-void IDK_setMouseActive( void ) {
-    
-    active = 1 ;
-}
-
-void IDK_setMouseInactive( void ) {
-    
-    active = 0 ;
-}
-
-void IDK_SetDisplayNeedsToUpdate( void ) {
-    
-    forceupdate++ ;
-}
-
-void IDK_SetDisplayNeedsToUpdateOnTime( double seconds ) {
-    
-    static double time_count = 0 ;
-    
-    if ( time_count == 0 ) time_count = IDK_GetTimeHP() ;
-    
-    if ( IDK_Timer_HP(&time_count, seconds) ) IDK_SetDisplayNeedsToUpdate() ;
-}
-
-void IDK_SetDisplayNeedsToUpdateNextFrame( void ) {
-    
-    static int flip = 0 ;
-    
-    IDK_Flip(&flip) ;
-    
-    if (flip) IDK_SetDisplayNeedsToUpdate() ;
-}
-
-void IDK_SetDisplayNeedsToUpdateRate( int num_of_fames_to_update, int num_of_fames_to_not_update ) {
-    
-    static int count = 0 ;
-    
-    static int count2 = 0 ;
-    
-    static int mode = 0 ;
-    
-    if ( count == 0 ) count = num_of_fames_to_update ;
-    
-    if ( count2 == 0 ) count2 = num_of_fames_to_not_update ;
-    
-    if ( !mode ) {
-        
-        count-- ;
-        
-        if ( count <= 0 ) {
-            
-            count = 0 ;
-            
-            mode = 1 ;
-        }
-        
-        IDK_SetDisplayNeedsToUpdate() ;
-    }
-    
-    if ( mode ) {
-        
-        count2-- ;
-        
-        if ( count2 <= 0 ) {
-            
-            count2 = 0 ;
-            
-            mode = 0 ;
-        }
-
-    }
-}
-
-int IDK_GetdoDisplayNeedUpdate(void) {
-    
-    if ( idk_refresh ) {
-    
-    if ( forceupdate ) {
-        
-        forceupdate = 0 ;
-        
-        return 1 ;
-    }
-    
-    if ((MouseX != oldX) || (MouseY != oldY)) {
-        
-        oldX = MouseX ;
-        
-        oldY = MouseY ;
-        
-        return 1 ;
-        
-    }
-    
-    }
-    
-    return 0 ;
-}
-
-void IDK_EnableRefresh(void) {
-    
-    idk_refresh = 1 ;
-}
-
-void IDK_DisableRefresh(void) {
-    
-    idk_refresh = 0 ;
-}
-
-void IDK_SetGetTimeHPFunc( IDKGetTimeHPFuncType IDKGetTimeHPFunc ) {
-    
-   IDKGetTimeHPFunc_ = IDKGetTimeHPFunc ;
-    
-}
-
-double IDK_GetTimeHP( void ) {
-    
-    if (IDKGetTimeHPFunc_ != NULL ) return IDKGetTimeHPFunc_() ;
-    
-    return 0 ;
-}
-
-static double GetFPSFunc_High( void ) {
-    
-    static int init = 0 ;
-    
-    static int numofframes = 0 ;
-    
-    static double time_count = 0 ;
+static double GetFPSFunc_High( IDKApp App ) {
     
     double seconds = 0 ;
     
-    static double fps = 0 ;
+    IDKFPSState state ;
     
-    if (!init) {
+    if ( App->highp_fps == NULL ) {
         
-        time_count = IDK_GetTimeHP() ;
+        App->highp_fps = RKMem_NewMemOfType(struct IDKFPSState_s) ;
         
-        init++ ;
+        App->highp_fps->init = 0 ;
+        
+        App->highp_fps->numofframes = 0 ;
+        
+        App->highp_fps->time_count = 0 ;
+        
+        App->highp_fps->fps = 0 ;
     }
     
-    numofframes++ ;
+    state = App->highp_fps ;
     
-    seconds = (IDK_GetTimeHP() - time_count) ;
+    if (!state->init) {
+        
+        state->time_count = IDK_GetTimeHP(App) ;
+        
+        state->init++ ;
+    }
+    
+    state->numofframes++ ;
+    
+    seconds = (IDK_GetTimeHP(App) - state->time_count) ;
     
     if ( seconds >= 0.25 ) {
         
-        fps = (numofframes / seconds) ;
+        state->fps = ( state->numofframes / seconds) ;
         
-        numofframes = 0 ;
+        state->numofframes = 0 ;
         
-        time_count = IDK_GetTimeHP() ;
+        state->time_count = IDK_GetTimeHP(App) ;
         
     }
     
-    return fps ;
+    return state->fps ;
 }
 
-static float GetFPSFunc_Low( void ) {
+static double GetFPSFunc_Low( IDKApp App ) {
     
-    static int init = 0 ;
+     double seconds = 0 ;
     
-    static int numofframes = 0 ;
+    IDKFPSState state ;
     
-    static double time_count = 0 ;
-    
-    double seconds = 0 ;
-    
-    static float fps = 0 ;
-    
-    if (!init) {
+    if ( App->lowp_fps == NULL ) {
         
-        time_count = (unsigned)time(NULL) ;
+        App->lowp_fps = RKMem_NewMemOfType(struct IDKFPSState_s) ;
         
-        init++ ;
+        App->lowp_fps->init = 0 ;
+        
+        App->lowp_fps->numofframes = 0 ;
+        
+        App->lowp_fps->time_count = 0 ;
+        
+        App->lowp_fps->fps = 0 ;
     }
     
-    numofframes++ ;
+    state = App->lowp_fps ;
     
-    seconds = ((unsigned)time(NULL) - time_count) ;
+    if (!state->init) {
+        
+        state->time_count = (unsigned)time(NULL) ;
+        
+        state->init++ ;
+    }
+    
+    state->numofframes++ ;
+    
+    seconds = ((unsigned)time(NULL) - state->time_count) ;
     
     if ( seconds >= 1 ) {
         
-        fps = (numofframes / seconds) ;
+        state->fps = (state->numofframes / seconds) ;
         
-        numofframes = 0 ;
+        state->numofframes = 0 ;
         
-        time_count = (unsigned)time(NULL) ;
+        state->time_count = (unsigned)time(NULL) ;
         
     }
     
-    return fps ;
+    return state->fps ;
 }
 
-static double GetFPSFunc( int Low0High1 ) {
+static double GetFPSFunc( IDKApp App, int Low0High1 ) {
     
     double fps = 0 ;
     
     if ( Low0High1 ) {
        
-        fps = GetFPSFunc_High() ;
+        fps = GetFPSFunc_High(App) ;
         
     } else {
         
-        fps = (double)GetFPSFunc_Low() ;
+        fps = GetFPSFunc_Low(App) ;
     }
     
     return fps ;
@@ -1271,81 +1266,20 @@ static const char* mydtoa( double val, char* string ) {
     
 }
 
-static int from_point_to_pixel( float f, int max ) {
-    
-    return (int)(f * max) ;
-}
-
-cn_point IDK_GetPixelFromPoint( IDKDrawArea drawarea, float x, float y ) {
-    
-    cn_point point ;
-    
-    point.x = from_point_to_pixel(x, drawarea->rect_x) ;
-    
-    point.y = from_point_to_pixel(y, drawarea->rect_y) ;
-    
-    return point ;
-}
-
-static raster_scene new_r_scene( int x, int y, codename_pixelcolor background ) {
-    
-    JHGPixels_scene pixelscene = JHGPixels_newscene(x, y, *background, JHGINT8888REVBGRA) ;
-    
-    codename_scene codenamescene = codename_NewSceneObject(pixelscene, 0, 0) ;
-    
-    return (raster_scene)codenamescene ;
-}
-
-void IDK_SetResolution( IDKDrawArea drawarea, int width, int height ) {
-    
-    JHGPixels_scenefree(drawarea->r_scene->pixelscene) ;
-    
-    free(drawarea->r_scene) ;
-    
-    drawarea->rect_x = width ;
-    
-    drawarea->rect_y = height ;
-    
-    drawarea->raster_size = MAX_JHG(drawarea->rect_x,  drawarea->rect_y) ;
-    
-    drawarea->r_scene = new_r_scene(drawarea->rect_x, drawarea->rect_y, drawarea->background) ;
-}
-
-void IDK_GetResolution( IDKDrawArea drawarea, int *width, int *height ) {
-    
-    *width = drawarea->rect_x ;
-    
-    *height = drawarea->rect_y ;
-}
-
-IDKRawData IDK_GetFrame( IDKDrawArea drawarea, int *x, int * y ) {
-    
-    return (IDKRawData)JHG_DrawPixels(drawarea->r_scene->pixelscene, x, y) ;
-}
-
-void IDK_ChangeBackGroundColor( IDKDrawArea drawarea, float red, float blue, float green ) {
-    
-    free(drawarea->background) ;
-    
-    drawarea->background = codename_NewColorObject(from_point_to_pixel(red, 255), from_point_to_pixel(blue, 255), from_point_to_pixel(green, 255)) ;
-    
-    JHGPixels_SetBackGroundColor(drawarea->r_scene->pixelscene, drawarea->background->r, drawarea->background->b, drawarea->background->g) ;
-}
-
-static const char* IDKGetFilePathForThePlatform( IDKLoadFileType filetype ) {
+static const char* IDKGetFilePathForThePlatform( IDKApp App, IDKLoadFileType filetype ) {
     
     #ifdef __APPLE__
     
-    const char* IDKGetFilePathForMac( IDKLoadFileType filetype ) ;
+    const char* IDKGetFilePathForMac( IDKApp App, IDKLoadFileType filetype ) ;
     
-    return IDKGetFilePathForMac(filetype) ;
+    return IDKGetFilePathForMac(App, filetype) ;
     
     #endif
     
     return NULL ;    
 }
 
- char* IDK_GetFilePathForPlatform( IDKLoadFileType filetype, const char* path ) {
+ char* IDK_GetFilePathForPlatform( IDKApp App, IDKLoadFileType filetype, const char* path ) {
     
     int size1 = 0 ;
     
@@ -1353,7 +1287,7 @@ static const char* IDKGetFilePathForThePlatform( IDKLoadFileType filetype ) {
     
     char* the_file_path = NULL ;
     
-    const char* path_base = IDKGetFilePathForThePlatform(filetype) ;
+    const char* path_base = IDKGetFilePathForThePlatform(App,filetype) ;
     
     if ( path_base == NULL ) return NULL ;
     
@@ -1377,11 +1311,11 @@ static const char* IDKGetFilePathForThePlatform( IDKLoadFileType filetype ) {
 
 }
 
-FILE* IDK_LoadFile( IDKLoadFileType filetype, const char* path, const char* mode ) {
+FILE* IDK_LoadFile( IDKApp App, IDKLoadFileType filetype, const char* path, const char* mode ) {
     
     FILE* file = NULL ;
     
-    char* the_file_path = IDK_GetFilePathForPlatform(filetype, path) ;
+    char* the_file_path = IDK_GetFilePathForPlatform(App, filetype, path) ;
     
     if ( the_file_path == NULL ) return NULL ;
     
@@ -1397,11 +1331,11 @@ void IDK_UnloadFile( FILE* file ) {
     fclose(file) ;
 }
 
-static void IDKInitLogFile( void ) {
+static void IDKInitLogFile( IDKApp App ) {
     
-    IDKLogFile = IDK_LoadFile(idk_data_file, "Logfile", "w") ;
+    App->LogFile = IDK_LoadFile(App, idk_data_file, "Logfile", "w") ;
     
-    if ( IDKLogFile == NULL ) {
+    if ( App->LogFile == NULL ) {
         
         puts("PANIC: Could not create Logfile!\n") ;
         
@@ -1410,7 +1344,7 @@ static void IDKInitLogFile( void ) {
         exit(EXIT_FAILURE) ;
     }
     
-    if ( setvbuf(IDKLogFile, NULL, _IONBF, 0) ) {
+    if ( setvbuf(App->LogFile, NULL, _IONBF, 0) ) {
         
         puts("PANIC: setvbuf failed!\n") ;
         
@@ -1421,12 +1355,12 @@ static void IDKInitLogFile( void ) {
     }
 }
 
-static void IDKKillLogFile( void ) {
+static void IDKKillLogFile( IDKApp App ) {
     
-     IDK_UnloadFile(IDKLogFile) ;
+     IDK_UnloadFile(App->LogFile) ;
 }
 
-void IDKLog( const char* string, int newline, int error ) {
+void IDKLog( IDKApp App, const char* string, int newline, int error ) {
     
     if ( newline ) {
     
@@ -1440,7 +1374,7 @@ void IDKLog( const char* string, int newline, int error ) {
          
      }
     
-     fprintf(IDKLogFile, "%s\n", string) ;
+     fprintf(App->LogFile, "%s\n", string) ;
         
     } else  {
        
@@ -1454,46 +1388,43 @@ void IDKLog( const char* string, int newline, int error ) {
             
      }
 
-     fprintf(IDKLogFile, "%s", string) ;
+     fprintf(App->LogFile, "%s", string) ;
         
     }
 }
 
-void IDKLogInt( int val, int newline, int error ) {
+void IDKLogInt( IDKApp App, int val, int newline, int error ) {
     
     char string[100] ;
     
     myitoa(val, string) ;
     
-    IDKLog(string, newline, error) ;
+    IDKLog(App, string, newline, error) ;
 }
 
-void IDKLogFloat( float val, int newline, int error ) {
+void IDKLogFloat( IDKApp App, float val, int newline, int error ) {
     
     char string[100] ;
     
     myftoa(val, string) ;
     
-    IDKLog(string, newline, error) ;
+    IDKLog(App, string, newline, error) ;
 }
 
-void IDKLogDouble( double val, int newline, int error ) {
+void IDKLogDouble( IDKApp App, double val, int newline, int error ) {
     
     char string[100] ;
     
     mydtoa(val, string) ;
     
-    IDKLog(string, newline, error) ;
+    IDKLog(App, string, newline, error) ;
 }
 
-static void IDKGlfwInit(void) {
+static void IDKGlfwInit( IDKApp App ) {
     
     glfwSetErrorCallback(IDKErrorCallbackForGLFW) ;
     
-    if (!glfwInit()) {
-        
-        if ( InitErrorCallBackFunc != NULL ) InitErrorCallBackFunc() ;
-    }
+    if (!glfwInit()) glfwTerminate()  ;
 }
 
 static void IDKGlfwKill(void) {
@@ -1501,7 +1432,7 @@ static void IDKGlfwKill(void) {
     glfwTerminate() ;
 }
 
-static void IDK_PlatformInit( int mode ) {
+static void IDKPlatformInit( IDKApp App, int mode ) {
     
     static int count = 0 ;
     
@@ -1511,15 +1442,15 @@ static void IDK_PlatformInit( int mode ) {
         
         if ( count == 1 ) {
         
-        IDKInitLogFile() ;
+        AppList = RKList_NewList() ;
         
-        IDKGlfwInit() ;
+        RKList_AddToList(AppList, App) ;
             
-        IDKAllocKeyboard() ;
-        
-        PageList = RKList_NewList() ;
+        IDKGlfwInit(App) ;
             
-        IDK_SetGetTimeHPFunc(glfwGetTime) ;
+        } else {
+            
+        RKList_AddToList(AppList, App) ;
             
         }
     }
@@ -1534,391 +1465,51 @@ static void IDK_PlatformInit( int mode ) {
             
             IDKGlfwKill() ;
             
-            IDKKillLogFile() ;
-            
-            IDKDeallocKeyboard() ;
-            
-            RKList_DeleteList(PageList) ;
+            RKList_DeleteList(AppList) ;
         }
     }
 }
 
-void IDK_ForceInitForIDK( void ) {
+void IDK_SpawnThreads( IDKApp App ) {
     
-    IDK_PlatformInit(1) ;
+    if ( App->Threads == NULL ) App->Threads = RKTasks_NewThreadGroup(10) ;
 }
 
-void IDK_ForceShutdownForIDK( void ) {
+void IDK_KillThreads( IDKApp App ) {
     
-    IDK_PlatformInit(0) ;
-}
-
-IDKDrawArea IDK_NewDrawArea( IDKDrawFunc drawfunc, IDKWindow window, int width, int height, float red, float blue, float green ) {
-    
-    IDKDrawArea NewDrawArea = RKMem_NewMemOfType(struct IDKDrawArea_s) ;
-    
-    NewDrawArea->raster_size = MAX_JHG(width, height) ;
-    
-    NewDrawArea->background = codename_NewColorObject(red*255,blue*255,green*255) ;
-    
-    NewDrawArea->r_scene = new_r_scene(width, height, NewDrawArea->background) ;
-    
-    NewDrawArea->drawfunc = drawfunc ;
-    
-    NewDrawArea->window = window ;
-    
-    NewDrawArea->Threads = NULL ;
-    
-    NewDrawArea->rect_x = width ;
-    
-    NewDrawArea->rect_y = height  ;
-    
-    NewDrawArea->zoom = 1 ;
-    
-    IDK_PlatformInit(1) ;
-    
-    return NewDrawArea ;
-}
-
-void IDK_DestroyDrawArea( IDKDrawArea area ) {
-    
-    JHGPixels_scenefree(area->r_scene->pixelscene) ;
-    
-    IDK_PlatformInit(0) ;
-    
-    free(area->background) ;
-    
-    free(area->r_scene) ;
-    
-    free(area) ;
-}
-
-JHGPixels_scene IDK_GetPixelScene( IDKDrawArea area ) {
-    
-    return area->r_scene->pixelscene ;
-}
-
-raster_scene IDK_GetRasterScene( IDKDrawArea area ) {
-    
-    return area->r_scene ;
-}
-
-IDKRawData IDK_Draw( IDKDrawArea area, int *x, int * y ) {
-    
-    if (IDK_GetdoDisplayNeedUpdate())JHGPixels_Reset(area->r_scene->pixelscene) ;
-    
-    area->drawfunc(area) ;
-    
-    return IDK_GetFrame(area, x, y) ;
-}
-
-IDKWindow IDK_GetWindowFromDrawArea( IDKDrawArea area ) {
-    
-    return area->window ;
-}
-
-void IDK_SpawnThreads( IDKDrawArea area ) {
-    
-    if ( area->Threads == NULL ) area->Threads = RKTasks_NewThreadGroup(10) ;
-}
-
-void IDK_KillThreads( IDKDrawArea area ) {
-    
-    if ( area->Threads != NULL ) {
+    if ( App->Threads != NULL ) {
         
-        RKTasks_DestroyThreadGroup(area->Threads)  ;
+        RKTasks_DestroyThreadGroup(App->Threads)  ;
         
-        area->Threads = NULL ;
+        App->Threads = NULL ;
     }
 }
 
-RKTasks_ThreadGroup IDK_GetThreads( IDKDrawArea area ) {
+RKTasks_ThreadGroup IDK_GetThreads( IDKApp App ) {
     
-    return area->Threads ;
+    return App->Threads ;
 }
 
-void IDK_SetPan( IDKDrawArea drawarea, float x, float y ) {
+float IDK_GetFPS( IDKApp App ) {
     
- cn_point point = IDK_GetPixelFromPoint(drawarea, x, y) ;
-    
- codename_movescene(drawarea->r_scene, point) ;
-    
+    return GetFPSFunc(App,0) ;
 }
 
-void IDK_SetZoom( IDKDrawArea drawarea, float zoom ) {
+double IDK_GetFPSHP( IDKApp App ) {
     
-    drawarea->zoom = zoom ;
+    return GetFPSFunc(App,1) ;
 }
 
-float IDK_GetZoom( IDKDrawArea drawarea ) {
+void IDK_GetFPSString( IDKApp App, char* string ) {
     
-    return drawarea->zoom ;
+    float fps = IDK_GetFPS(App) ;
+    
+    myftoa(fps,string) ;
 }
 
-void IDK_Progressbar( IDKDrawArea drawarea, float percent, float size_x, float size_y, float x, float y, float red, float blue, float green ) {
+void IDK_GetFPSHPString( IDKApp App, char* string ) {
     
-    IDK_Rect(drawarea,size_x*percent,size_y,x,y,red,blue,green) ;
-}
-
-//Bresenham's line algorithm
-
-void IDK_FloatLine( IDKDrawArea drawarea, float x1, float y1, float x2, float y2, float red, float blue, float green ) {
+    double fps = IDK_GetFPSHP(App) ;
     
-    float X1 = from_point_to_pixel(x1*drawarea->zoom,drawarea->rect_x) ;
-    
-    float X2 = from_point_to_pixel(x2*drawarea->zoom,drawarea->rect_x) ;
-    
-    float Y1 = from_point_to_pixel(y1*drawarea->zoom,drawarea->rect_y) ;
-    
-    float Y2 = from_point_to_pixel(y2*drawarea->zoom,drawarea->rect_y) ;
-    
-    if ( X1 == X2 ) X2 += 1 ;
-    
-    if ( Y1 == Y2 ) Y2 += 1 ;
-    
-    float dx = X2 - X1 ;
-    
-    float dy = Y2 - Y1 ;
-    
-    float error = 0 ;
-    
-    float delta = ABS_JHG(dy/dx) ;
-    
-    float x = X1 ;
-    
-    float y = Y1 ;
-    
-    while ( x != X2 ) {
-        
-        IDK_SetPoint(drawarea, x, y, red, blue, green) ;
-        
-        x = x + ZSGN_JHG(X2 - X1) ;
-        
-        error = error + delta ;
-        
-        while ( error >= 0.000001 ) {
-            
-            IDK_SetPoint(drawarea, x, y, red, blue, green) ;
-            
-            y = y + ZSGN_JHG(Y2 - Y1) ;
-            
-            error = error - 1.0 ;
-        }
-    }
-}
-
-void IDK_FloatLine3D( IDKDrawArea drawarea, float x1, float y1, float x2, float y2, float z1, float z2, float red, float blue, float green ) {
-    
-    float X1 = from_point_to_pixel(x1*drawarea->zoom,drawarea->rect_x) ;
-    
-    float X2 = from_point_to_pixel(x2*drawarea->zoom,drawarea->rect_x) ;
-    
-    float Y1 = from_point_to_pixel(y1*drawarea->zoom,drawarea->rect_y) ;
-    
-    float Y2 = from_point_to_pixel(y2*drawarea->zoom,drawarea->rect_y) ;
-    
-    float Z1 = from_point_to_pixel(z1,1024) ;
-    
-    float Z2 = from_point_to_pixel(z2,1024) ;
-    
-    if ( X1 == X2 ) X2 += 1 ;
-    
-    if ( Y1 == Y2 ) Y2 += 1 ;
-    
-    if ( Z1 == Z2 ) Z2 += 1 ;
-    
-    float dx = X2 - X1 ;
-    
-    float dy = Y2 - Y1 ;
-    
-    float dz = Z2 - Z1 ;
-    
-    float error = 0 ;
-    
-    float error2 = 0 ;
-    
-    float delta = ABS_JHG(dy/dx) ;
-    
-    float delta2 = ABS_JHG(dz/dy) ;
-    
-    float x = X1 ;
-    
-    float y = Y1 ;
-    
-    float z = Z1 ;
-    
-    while ( x != X2 ) {
-        
-        IDK_SetPoint(drawarea, x, y, z/1024, z/1024, z/1024) ;
-        
-        x = x + ZSGN_JHG(X2 - X1) ;
-        
-        error = error + delta ;
-        
-        while ( error >= 0.000001 ) {
-            
-            IDK_SetPoint(drawarea, x, y, z/1024, z/1024, z/1024) ;
-            
-            y = y + ZSGN_JHG(Y2 - Y1) ;
-            
-            error = error - 1.0 ;
-            
-            error2 = error2 + delta2 ;
-            
-            while ( error2 >= 0.000001 ) {
-                
-                IDK_SetPoint(drawarea, x, y, z/1024, z/1024, z/1024) ;
-                
-                z = z + ZSGN_JHG(Z2 - Z1) ;
-                
-                error2 = error2 - 1.0 ;
-            }
-
-        }
-    }
-}
-
-void IDK_Line( IDKDrawArea drawarea, float x1, float y1, float x2, float y2, float thickness, float red, float blue, float green ) {
-    
-    thickness = ((thickness*0.1*drawarea->zoom) <= 0.8) ? 0.04 : thickness*0.1*drawarea->zoom ;
-    
-    cnpoint_linesegment_with_thickness(drawarea->r_scene, from_point_to_pixel(x1*drawarea->zoom,drawarea->rect_x), from_point_to_pixel(y1*drawarea->zoom,drawarea->rect_y), from_point_to_pixel(x2*drawarea->zoom,drawarea->rect_x), from_point_to_pixel(y2*drawarea->zoom,drawarea->rect_y), from_point_to_pixel(thickness, (drawarea->raster_size*thickness)), from_point_to_pixel(red,255), from_point_to_pixel(blue,255), from_point_to_pixel(green,255)) ;
-}
-
-void IDK_Circle( IDKDrawArea drawarea, float a, float b, float r, float red, float blue, float green ) {
-    
-    cnpoint_wikiCircle(drawarea->r_scene, from_point_to_pixel(a*drawarea->zoom,drawarea->rect_x), from_point_to_pixel(b*drawarea->zoom,drawarea->rect_y), from_point_to_pixel(r*drawarea->zoom,drawarea->raster_size),  from_point_to_pixel(red,255), from_point_to_pixel(blue,255), from_point_to_pixel(green,255)) ;
-}
-
-void IDK_Rect( IDKDrawArea drawarea, float size_x, float size_y, float x, float y, float red, float blue, float green ) {
-    
-    cnpoint_Rect(drawarea->r_scene, from_point_to_pixel(size_x*drawarea->zoom,drawarea->rect_x), from_point_to_pixel(size_y*drawarea->zoom,drawarea->rect_y), from_point_to_pixel(x*drawarea->zoom,drawarea->rect_x), from_point_to_pixel(y*drawarea->zoom,drawarea->rect_y), from_point_to_pixel(red,255), from_point_to_pixel(blue,255), from_point_to_pixel(green,255)) ;
-}
-
-void IDK_Square( IDKDrawArea drawarea, float size, float x, float y, float red, float blue, float green ) {
-    
-    cnpoint_Rect(drawarea->r_scene, from_point_to_pixel(size*drawarea->zoom,drawarea->raster_size), from_point_to_pixel(size*drawarea->zoom,drawarea->raster_size), from_point_to_pixel(x*drawarea->zoom,drawarea->rect_x), from_point_to_pixel(y*drawarea->zoom,drawarea->rect_y), from_point_to_pixel(red,255), from_point_to_pixel(blue,255), from_point_to_pixel(green,255)) ;
-}
-
-void IDK_SetPoint( IDKDrawArea drawarea, int x, int y, float red, float blue, float green ) {
-    
-    cn_SetPoint(drawarea->r_scene, x, y, from_point_to_pixel(red,255), from_point_to_pixel(blue,255), from_point_to_pixel(green,255)) ;
-}
-
-void IDK_SetDot( IDKDrawArea drawarea, float x, float y, float red, float blue, float green ) {
-    
-    cn_SetPoint(drawarea->r_scene, from_point_to_pixel(x,drawarea->rect_x), from_point_to_pixel(y,drawarea->rect_y), from_point_to_pixel(red,255), from_point_to_pixel(blue,255), from_point_to_pixel(green,255)) ;
-}
-
-void IDK_SetColor( IDKDrawArea drawarea, int x, int y, IDKColor color ) {
-    
-    IDK_SetPoint(drawarea, x, y, color.red, color.blue, color.green) ;
-}
-
-void IDK_SetDotColor( IDKDrawArea drawarea, float x, float y, IDKColor color ) {
-    
-    IDK_SetDot(drawarea, x, y, color.red, color.blue, color.green) ;
-}
-
-IDKColor IDK_Colorit(float red, float blue, float green) {
-    
-    IDKColor newcolor ;
-    
-    newcolor.red = red ;
-    
-    newcolor.blue = blue ;
-    
-    newcolor.green = green ;
-    
-    return newcolor ;
-}
-
-IDKColor IDK_Colorthat(float that) {
-    
-    return IDK_Colorit(that,that,that) ;
-}
-
-IDKColor IDK_Color_add(IDKColor color_a, IDKColor color_b) {
-    
-    return IDK_Colorit(color_a.red + color_b.red, color_a.blue + color_b.blue, color_a.green + color_b.green) ;
-    
-}
-
-IDKColor IDK_Color_sub(IDKColor color_a, IDKColor color_b) {
-    
-    return IDK_Colorit(color_a.red - color_b.red, color_a.blue - color_b.blue, color_a.green - color_b.green) ;
-    
-}
-
-IDKColor IDK_Color_mul(IDKColor color_a, IDKColor color_b) {
-    
-    return IDK_Colorit(color_a.red * color_b.red, color_a.blue * color_b.blue, color_a.green * color_b.green) ;
-    
-}
-
-IDKColor IDK_Color_div(IDKColor color_a, IDKColor color_b) {
-    
-    return IDK_Colorit(color_a.red / color_b.red, color_a.blue / color_b.blue, color_a.green / color_b.green) ;
-    
-}
-
-IDKColor IDK_Color_map(IDKColor color, double A, double y) {
-    
-    color.red = A * (pow(color.red, y)) ;
-    
-    color.blue = A * (pow(color.blue, y)) ;
-    
-    color.green = A * (pow(color.green, y)) ;
-    
-    return color ;
-}
-
-float IDK_GetFPS( void ) {
-    
-    return GetFPSFunc(0) ;
-}
-
-double IDK_GetFPSHP( void ) {
-    
-    return GetFPSFunc(1) ;
-}
-
-void IDK_DisplayFrameRate( IDKDrawArea drawarea, float size, float x, float y, float red, float blue, float green ) {
-    
-    char framestring[100] ;
-    
-    float fps = IDK_GetFPS() ;
-    
-    myftoa(fps,framestring) ;
-    
-    IDK_String(drawarea, framestring, size, x, y, red, blue, green) ;
-    
-    IDK_SetDisplayNeedsToUpdate() ;
-}
-
-void IDK_DisplayFrameRateHP( IDKDrawArea drawarea, float size, float x, float y, float red, float blue, float green ) {
-    
-    char framestring[100] ;
-    
-    double fps = IDK_GetFPSHP() ;
-    
-    mydtoa(fps,framestring) ;
-    
-    IDK_String(drawarea, framestring, size, x, y, red, blue, green) ;
-    
-    IDK_SetDisplayNeedsToUpdate() ;
-}
-
-void IDK_DisplayInt( IDKDrawArea drawarea, int val, float size, float x, float y, float red, float blue, float green ) {
-    
-    char string[100] ;
-    
-    myitoa(val, string) ;
-    
-    IDK_String(drawarea, string, size, x, y, red, blue, green) ;
-}
-
-void IDK_String( IDKDrawArea drawarea, const char* string, float size, float x, float y, float red, float blue, float green ) {
-    
-    cnpoint_String(drawarea->r_scene, string, from_point_to_pixel(size*00.1*drawarea->zoom, (drawarea->raster_size*size)), from_point_to_pixel(x*drawarea->zoom,drawarea->rect_x),  from_point_to_pixel(y*drawarea->zoom,drawarea->rect_y),  from_point_to_pixel(red,255), from_point_to_pixel(blue,255), from_point_to_pixel(green,255)) ;
+    mydtoa(fps,string) ;
 }

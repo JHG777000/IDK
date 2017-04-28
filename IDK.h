@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2016 Jacob Gordon. All rights reserved.
+ Copyright (c) 2017 Jacob Gordon. All rights reserved.
  
  Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
  
@@ -21,6 +21,8 @@
 #include <stdio.h>
 
 #define GLFW_INCLUDE_GLCOREARB
+#define GLFW_INCLUDE_GLEXT
+
 
 #ifdef __APPLE__
 
@@ -37,39 +39,28 @@
 #include "RKArgs.h"
 #include "RKMath.h"
 #include "RKTasks.h"
-#include "codename.h"
-
-typedef codename_scene raster_scene ;
-
-typedef JHGInt* IDKRawData ;
 
 typedef double (*IDKGetTimeHPFuncType)(void) ;
 
 typedef struct IDKWindow_s* IDKWindow ;
 
-typedef void (*IDKFullScreenFuncType)( const void* fullscreen_state) ;
-
-typedef void (*IDKRasterResizeFuncType)(IDKWindow window, int width, int height) ;
-
-typedef void (*IDKWindowRunLoopFuncType)(void) ;
-
-typedef void (*IDKWindowQuitRunLoopFuncType)(void) ;
-
-typedef void (*IDKInitErrorCallBackFuncType)(void) ;
-
 typedef struct IDK_Page_s* IDKPage ;
 
 typedef struct IDK_Line_s* IDKTextLine ;
 
-typedef struct { float red ; float blue ; float green  ; } IDKColor ;
+typedef struct IDKApp_s* IDKApp ;
 
-typedef struct { float x ; float y ; } IDKPoint ;
+typedef enum { idk_glfw_error, idk_app_error, idk_window_error } IDKErrorType ;
 
-struct IDKDrawArea_s ;
+typedef void (*IDKFullScreenFuncType)( const void* fullscreen_state) ;
 
-typedef struct IDKDrawArea_s* IDKDrawArea ;
+typedef void (*IDKRasterResizeFuncType)(IDKWindow window, int width, int height) ;
 
-typedef void (*IDKDrawFunc)(IDKDrawArea area) ;
+typedef void (*IDKWindowRunLoopFuncType)(RKArgs args) ;
+
+typedef void (*IDKWindowQuitRunLoopFuncType)(RKArgs args) ;
+
+typedef void (*IDKErrorCallBackFuncType)(IDKApp App, IDKErrorType ErrorType) ;
 
 #define IDK_DefineKey(key,lastkey) key = (lastkey + 1)
 
@@ -177,70 +168,48 @@ IDK_DefineKey(idk_key_9,idk_key_8),
 
 typedef enum { idk_resource_file, idk_data_file } IDKLoadFileType ;
 
-void IDK_theMouse( float x, float y ) ;
-void IDK_setMouseActive( void ) ;
-void IDK_setMouseInactive( void ) ;
-int IDK_GetdoDisplayNeedUpdate(void) ;
-void IDK_SetDisplayNeedsToUpdate(void) ;
-void IDK_SetDisplayNeedsToUpdateOnTime( double seconds ) ;
-void IDK_SetDisplayNeedsToUpdateNextFrame( void ) ;
-void IDK_SetDisplayNeedsToUpdateRate( int num_of_fames_to_update, int num_of_fames_to_not_update ) ;
-float IDK_GetMouseX( void ) ;
-float IDK_GetMouseY( void ) ;
-void IDK_SetLeftMouseButton(void) ;
-int IDK_GetLeftMouseButton(void) ;
-void IDK_SetRightMouseButton(void) ;
-int IDK_GetRightMouseButton(void) ;
-void IDK_SetMiddleMouseButton(void) ;
-int IDK_GetMiddleMouseButton(void) ;
-void IDK_SetKey( int key ) ;
-int IDK_GetKey( int key ) ;
-void IDK_ResetKey( int key ) ;
-void IDK_ResetLeftMouseButton(void) ;
-void IDK_ResetRightMouseButton(void) ;
-void IDK_ResetMiddleMouseButton(void) ;
-void IDK_EnableRefresh(void) ;
-void IDK_DisableRefresh(void) ;
+void IDK_setMouseActive( IDKWindow window ) ;
+void IDK_setMouseInactive( IDKWindow window )  ;
+float IDK_GetMouseX( IDKWindow window ) ;
+float IDK_GetMouseY( IDKWindow window ) ;
+int IDK_GetLeftMouseButton( IDKWindow window ) ;
+int IDK_GetRightMouseButton( IDKWindow window ) ;
+int IDK_GetMiddleMouseButton( IDKWindow window ) ;
+int IDK_GetKey( IDKWindow window, int key ) ;
 
-#define IDK_KeyboardMacro(action,press,release,key) \
+#define IDK_KeyboardMacro(window,action,press,release,key) \
 if ( action == press ) { \
-IDK_SetKey(key) ; \
+IDK_SetKey(window,key) ; \
 } else if ( action == release ) {\
-IDK_ResetKey(key) ;\
+IDK_ResetKey(window,key) ;\
 }
 
-#define IDK_MouseMacro(action,press,release,button) \
+#define IDK_MouseMacro(window,action,press,release,button) \
 if ( action == press ) { \
-IDK_Set ## button ## MouseButton() ; \
+IDK_Set ## button ## MouseButton(window) ; \
 } else if ( action == release ) {\
-IDK_Reset ## button ## MouseButton() ;\
+IDK_Reset ## button ## MouseButton(window) ;\
 }
 
-void IDK_ForceInitForIDK( void ) ;
+IDKApp IDK_NewApp( RKString AppName, float Version, IDKErrorCallBackFuncType ErrorCallBackFunc ) ;
 
-void IDK_ForceShutdownForIDK( void ) ;
+void IDK_DestroyApp( IDKApp App ) ;
 
-void IDKLog( const char* string, int newline, int error ) ;
+RKString IDK_GetAppName( IDKApp App ) ;
 
-void IDKLogInt( int val, int newline, int error ) ;
+float IDK_GetAppVersion( IDKApp App ) ;
 
-void IDKLogFloat( float val, int newline, int error ) ;
+void IDKLog( IDKApp App, const char* string, int newline, int error ) ;
 
-void IDKLogDouble( double val, int newline, int error ) ;
+void IDKLogInt( IDKApp App, int val, int newline, int error ) ;
 
-IDKDrawArea IDK_NewDrawArea( IDKDrawFunc drawfunc, IDKWindow window, int width, int height, float red, float blue, float green ) ;
+void IDKLogFloat( IDKApp App, float val, int newline, int error ) ;
 
-void IDK_DestroyDrawArea( IDKDrawArea area ) ;
-
-JHGPixels_scene IDK_GetPixelScene( IDKDrawArea area ) ;
-
-raster_scene IDK_GetRasterScene( IDKDrawArea area ) ;
-
-void IDK_SetResolution( IDKDrawArea drawarea, int width, int height ) ;
+void IDKLogDouble( IDKApp App, double val, int newline, int error ) ;
 
 void IDK_SetRasterResizeFunc( IDKWindow window, IDKRasterResizeFuncType RasterResizeFunc ) ;
 
-IDKWindow IDK_NewWindow( int win_width, int win_height, const char* win_title, IDKRasterResizeFuncType RasterResizeFunc ) ;
+IDKWindow IDK_NewWindow( IDKApp App, int win_width, int win_height, const char* win_title, IDKRasterResizeFuncType RasterResizeFunc ) ;
 
 void IDK_DestroyWindow( IDKWindow window ) ;
 
@@ -252,9 +221,9 @@ void IDK_SetWindowContextCurrent( IDKWindow window ) ;
 
 void IDK_CloseWindow( IDKWindow window ) ;
 
-void IDK_WindowRunLoop( IDKWindow window, IDKWindowRunLoopFuncType IDKWindowRunLoopFunc, IDKWindowQuitRunLoopFuncType IDKWindowQuitRunLoopFunc ) ;
+void IDK_WindowRunLoop( IDKWindow window, IDKWindowRunLoopFuncType IDKWindowRunLoopFunc, RKArgs RunArgs, IDKWindowQuitRunLoopFuncType IDKWindowQuitRunLoopFunc, RKArgs QuitArgs )  ;
 
-void IDK_WindowRunLoopWithTime( IDKWindow window, double seconds, IDKWindowRunLoopFuncType IDKWindowRunLoopFunc, IDKWindowQuitRunLoopFuncType IDKWindowQuitRunLoopFunc ) ;
+void IDK_WindowRunLoopWithTime( IDKWindow window, double seconds, IDKWindowRunLoopFuncType IDKWindowRunLoopFunc, RKArgs RunArgs, IDKWindowQuitRunLoopFuncType IDKWindowQuitRunLoopFunc, RKArgs QuitArgs ) ;
 
 void* IDK_GetPtrToGLFWWindow( IDKWindow window ) ;
 
@@ -262,41 +231,31 @@ void IDK_SetPtrFromWindow( IDKWindow window, void* ptr ) ;
 
 void* IDK_GetPtrFromWindow( IDKWindow window ) ;
 
+IDKApp IDK_GetAppFromWindow( IDKWindow window ) ;
+
 void IDK_SetWindowSize( IDKWindow window, int width, int height ) ;
 
 void IDK_GetWindowSize( IDKWindow window, int *width, int *height ) ;
 
 void IDK_GetRasterSize( IDKWindow window, int* width, int* height ) ;
 
-void IDK_SetFullScreenFlag( IDKWindow window, int is_fullscreen ) ;
-
 void IDK_EnterFullscreen( IDKWindow window ) ;
 
 void IDK_ExitFullscreen( IDKWindow window ) ;
 
-char* IDK_GetFilePathForPlatform( IDKLoadFileType filetype, const char* path ) ;
+char* IDK_GetFilePathForPlatform( IDKApp App, IDKLoadFileType filetype, const char* path ) ;
 
-FILE* IDK_LoadFile( IDKLoadFileType filetype, const char* path, const char* mode ) ;
+FILE* IDK_LoadFile( IDKApp App, IDKLoadFileType filetype, const char* path, const char* mode ) ;
 
 void IDK_UnloadFile( FILE* file ) ;
 
-void IDK_ChangeBackGroundColor( IDKDrawArea drawarea, float red, float blue, float green ) ;
-
-IDKRawData IDK_GetFrame( IDKDrawArea drawarea, int *x, int * y ) ;
-
-IDKRawData IDK_Draw( IDKDrawArea area, int *x, int * y ) ;
-
-IDKWindow IDK_GetWindowFromDrawArea( IDKDrawArea area ) ;
-
 int IDK_Timer( long* time_count, long seconds ) ;
 
-int IDK_Timer_HP( double* time_count, double seconds ) ;
+int IDK_Timer_HP( IDKApp App, double* time_count, double seconds ) ;
 
-void IDK_SetGetTimeHPFunc( IDKGetTimeHPFuncType IDKGetTimeHPFunc ) ;
+double IDK_GetTimeHP( IDKApp App ) ;
 
-double IDK_GetTimeHP( void ) ;
-
-void IDK_SetInitErrorCallback( IDKInitErrorCallBackFuncType InitErrorCallBack ) ;
+void IDK_SetErrorCallback( IDKApp App, IDKErrorCallBackFuncType ErrorCallBack ) ;
 
 IDKTextLine IDK_NewTextLine( IDKPage Page ) ;
 
@@ -304,11 +263,11 @@ void IDK_DestroyTextLine( IDKTextLine TextLine ) ;
 
 const char* IDK_GetTextLine( IDKTextLine TextLine ) ;
 
-IDKPage IDK_NewPage( int max_num_of_text ) ;
+IDKPage IDK_NewPage( IDKWindow window, int max_num_of_text ) ;
 
 void IDK_DestroyPage( IDKPage Page ) ;
 
-void IDK_AddCharToPageList( char c ) ;
+void IDK_AddCharToPageList( IDKWindow window, char c ) ;
 
 void IDK_AddCharToPage( char c, IDKPage Page ) ;
 
@@ -328,68 +287,18 @@ char IDK_PageGetCharAtCursor( IDKPage Page ) ;
 
 const char* IDK_PageGetString( IDKPage Page ) ;
 
-void IDK_SpawnThreads( IDKDrawArea area ) ;
+void IDK_SpawnThreads( IDKApp App ) ;
 
-void IDK_KillThreads( IDKDrawArea area ) ;
+void IDK_KillThreads( IDKApp App ) ;
 
-RKTasks_ThreadGroup IDK_GetThreads( IDKDrawArea area ) ;
+RKTasks_ThreadGroup IDK_GetThreads( IDKApp App ) ;
 
-void IDK_SetPan( IDKDrawArea drawarea, float x, float y ) ;
+float IDK_GetFPS( IDKApp App ) ;
 
-void IDK_SetZoom( IDKDrawArea drawarea, float zoom ) ;
+double IDK_GetFPSHP( IDKApp App ) ;
 
-float IDK_GetZoom( IDKDrawArea drawarea ) ;
+void IDK_GetFPSString( IDKApp App, char* string ) ;
 
-void IDK_Progressbar( IDKDrawArea drawarea, float percent, float size_x, float size_y, float x, float y, float red, float blue, float green ) ;
-
-void IDK_FloatLine( IDKDrawArea drawarea, float x1, float y1, float x2, float y2, float red, float blue, float green ) ;
-
-void IDK_FloatLine3D( IDKDrawArea drawarea, float x1, float y1, float x2, float y2, float z1, float z2, float red, float blue, float green ) ;
-
-void IDK_Line( IDKDrawArea drawarea, float x1, float y1, float x2, float y2, float thickness, float red, float blue, float green ) ;
-
-void IDK_Circle( IDKDrawArea drawarea, float a, float b, float r, float red, float blue, float green ) ;
-
-void IDK_Rect( IDKDrawArea drawarea, float size_x, float size_y, float x, float y, float red, float blue, float green ) ;
-
-void IDK_Square( IDKDrawArea drawarea, float size, float x, float y, float red, float blue, float green ) ;
-
-cn_point IDK_GetPixelFromPoint( IDKDrawArea drawarea, float x, float y ) ;
-
-void IDK_SetPoint( IDKDrawArea drawarea, int x, int y, float red, float blue, float green ) ;
-
-void IDK_SetDot( IDKDrawArea drawarea, float x, float y, float red, float blue, float green ) ;
-
-void IDK_SetColor( IDKDrawArea drawarea, int x, int y, IDKColor color ) ;
-
-void IDK_SetDotColor( IDKDrawArea drawarea, float x, float y, IDKColor color ) ;
-
-IDKColor IDK_Colorit(float red, float blue, float green) ;
-
-IDKColor IDK_Colorthat(float that) ;
-
-IDKColor IDK_Color_add(IDKColor color_a, IDKColor color_b) ;
-
-IDKColor IDK_Color_sub(IDKColor color_a, IDKColor color_b) ;
-
-IDKColor IDK_Color_add(IDKColor color_a, IDKColor color_b) ;
-
-IDKColor IDK_Color_mul(IDKColor color_a, IDKColor color_b) ;
-
-IDKColor IDK_Color_div(IDKColor color_a, IDKColor color_b) ;
-
-IDKColor IDK_Color_map(IDKColor color, double A, double y) ;
-
-float IDK_GetFPS( void ) ;
-
-double IDK_GetFPSHP( void ) ;
-
-void IDK_DisplayFrameRate( IDKDrawArea drawarea, float size, float x, float y, float red, float blue, float green ) ;
-
-void IDK_DisplayFrameRateHP( IDKDrawArea drawarea, float size, float x, float y, float red, float blue, float green ) ;
-
-void IDK_DisplayInt( IDKDrawArea drawarea, int val, float size, float x, float y, float red, float blue, float green ) ;
-
-void IDK_String( IDKDrawArea drawarea, const char* string, float size, float x, float y, float red, float blue, float green ) ;
+void IDK_GetFPSHPString( IDKApp App, char* string );
 
 #endif /* defined(__IDKApp__IDK__) */

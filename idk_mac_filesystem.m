@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2016 Jacob Gordon. All rights reserved.
+ Copyright (c) 2017 Jacob Gordon. All rights reserved.
  
  Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
  
@@ -21,13 +21,17 @@
 
 #include "IDK.h"
 
-static const char* get_AppSupport_mac( void ) {
+static const char* IDKMacGetAppSupportDir( IDKApp App ) {
     
     static int makedir = 1 ;
     
     NSFileManager* filemanager = [NSFileManager defaultManager] ;
     
     NSURL* the_appsupport_dir = nil ;
+    
+    NSString* app_name = [[NSString alloc] initWithBytes:RKString_GetString(IDK_GetAppName(App)) length:RKString_GetSize(IDK_GetAppName(App)) encoding: NSASCIIStringEncoding] ;
+    
+    NSString* idk_bundle_id_string = @"com.idk.bundleidentifier.app." ;
     
     NSURL* app_path = nil ;
     
@@ -39,7 +43,7 @@ static const char* get_AppSupport_mac( void ) {
         
         NSString* the_bundle_id = [NSBundle mainBundle].bundleIdentifier ;
         
-        if ( the_bundle_id == NULL ) the_bundle_id = @"IDKBundleIdentifier" ;
+        if ( the_bundle_id == NULL ) the_bundle_id = [idk_bundle_id_string stringByAppendingString:app_name] ;
         
         app_path = [the_appsupport_dir URLByAppendingPathComponent:the_bundle_id];
     }
@@ -54,18 +58,18 @@ static const char* get_AppSupport_mac( void ) {
     return app_path.fileSystemRepresentation ;
 }
 
-static const char* get_resourcePath_mac( void ) {
+static const char* IDKMacGetResourcePath( void ) {
     
-    NSString* _resourcePath = [NSBundle mainBundle].resourcePath ;
+    NSString* resourcePath = [NSBundle mainBundle].resourcePath ;
     
-    return [_resourcePath cStringUsingEncoding:NSASCIIStringEncoding] ;
+    return [resourcePath cStringUsingEncoding:NSASCIIStringEncoding] ;
 }
 
-const char* IDKGetFilePathForMac( IDKLoadFileType filetype ) {
+const char* IDKGetFilePathForMac( IDKApp App, IDKLoadFileType filetype ) {
     
-    if ( filetype == idk_resource_file ) return get_resourcePath_mac() ;
+    if ( filetype == idk_resource_file ) return IDKMacGetResourcePath() ;
     
-    if ( filetype == idk_data_file ) return get_AppSupport_mac() ;
+    if ( filetype == idk_data_file ) return IDKMacGetAppSupportDir(App) ;
     
     return NULL ;
 }
