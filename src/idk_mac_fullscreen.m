@@ -16,7 +16,7 @@
  */
 
 #import <Cocoa/Cocoa.h>
-#include <IDK.h>
+#include <IDK/IDK.h>
 
 @interface FullScreen_Mac : NSObject
 

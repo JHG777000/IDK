@@ -19,7 +19,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
-#include <IDK.h>
+#include <IDK/IDK.h>
 
 typedef struct IDKFPSState_s { int init ; int numofframes ; double time_count ; double fps ; }* IDKFPSState ;
 
