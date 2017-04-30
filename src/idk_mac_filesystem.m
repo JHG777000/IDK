@@ -18,8 +18,7 @@
 #import <Cocoa/Cocoa.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
-#include "IDK.h"
+#include <IDK.h>
 
 static const char* IDKMacGetAppSupportDir( IDKApp App ) {
     

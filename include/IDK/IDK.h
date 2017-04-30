@@ -35,10 +35,10 @@
 #include <GLFW/glfw3native.h>
 
 
-#include "RKMem.h"
-#include "RKArgs.h"
-#include "RKMath.h"
-#include "RKTasks.h"
+#include <RKLib/RKMem.h>
+#include <RKLib/RKArgs.h>
+#include <RKLib/RKMath.h>
+#include <RKLib/RKTasks.h>
 
 typedef double (*IDKGetTimeHPFuncType)(void) ;
 

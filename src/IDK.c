@@ -19,11 +19,11 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
-#include "IDK.h"
+#include <IDK.h>
 
 typedef struct IDKFPSState_s { int init ; int numofframes ; double time_count ; double fps ; }* IDKFPSState ;
 
-struct IDKApp_s { RKString AppName ; IDKFPSState lowp_fps ; IDKFPSState highp_fps ;IDKGetTimeHPFuncType IDKGetTimeHPFunc ;
+struct IDKApp_s { RKString AppName ; IDKFPSState lowp_fps ; IDKFPSState highp_fps ; IDKGetTimeHPFuncType IDKGetTimeHPFunc ;
     
 IDKErrorCallBackFuncType ErrorCallBackFunc ; FILE* LogFile ; float Version ; RKTasks_ThreadGroup Threads ;  } ;
 
