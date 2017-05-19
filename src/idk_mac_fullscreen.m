@@ -15,12 +15,14 @@
  TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifdef __APPLE__
+
 #import <Cocoa/Cocoa.h>
 #include <IDK/IDK.h>
 
 @interface FullScreen_Mac : NSObject
 
-@property IDKWindow idk_window ;
+  @property IDKWindow idk_window ;
 
 @end
 
@@ -71,7 +73,7 @@ void IDKKillFullScreenForMac( const void* fullscreen_state ) {
 
 void IDKEnterOrExitFullScreenForMac( const void* fullscreen_state ) {
     
-    FullScreen_Mac *fullScreen_mac = (__bridge FullScreen_Mac *)(fullscreen_state) ;
+    FullScreen_Mac *fullScreen_mac = (__bridge FullScreen_Mac *)fullscreen_state ;
     
     [fullScreen_mac EnterOrExitFullScreen] ;
 }
@@ -83,3 +85,5 @@ void IDKEnterOrExitFullScreenForMac( const void* fullscreen_state ) {
 }
 
 @end
+
+#endif

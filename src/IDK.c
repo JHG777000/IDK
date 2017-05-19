@@ -91,6 +91,57 @@ void IDK_DestroyApp( IDKApp App ) {
     free(App) ;
 }
 
+void IDK_LogVersion( IDKApp App ) {
+        
+     IDKLog(App, "IDK(Interactive Development Kit), version: ", 0, 0) ;
+    
+     IDKLogFloat(App, 0, 0, 0) ;
+    
+     IDKLog(App, ", and build: ", 0, 0) ;
+     
+     #ifdef __APPLE__
+    
+     IDKLog(App, "Macintosh-", 0, 0) ;
+    
+     #endif
+     
+    #ifdef _WIN32
+    
+     IDKLog(App, "Windows-", 0, 0) ;
+    
+     #endif
+    
+     #ifdef DEBUG
+    
+     IDKLog(App, "Debug", 1, 0) ;
+    
+     #else
+    
+     IDKLog(App, "Release", 1, 0) ;
+    
+     #endif
+
+     int major, minor, revision ;
+    
+     glfwGetVersion(&major, &minor, &revision) ;
+    
+     IDKLog(App, "IDK, linked against: GLFW ", 0, 0) ;
+    
+     IDKLogInt(App, major, 0, 0) ;
+    
+     IDKLog(App, ".", 0, 0) ;
+    
+     IDKLogInt(App, minor, 0, 0) ;
+    
+     IDKLog(App, ".", 0, 0) ;
+    
+     IDKLogInt(App, revision, 0, 0) ;
+    
+     IDKLog(App, " with, ", 0, 0) ;
+    
+     IDKLog(App, glfwGetVersionString(), 1, 0) ;
+}
+
 RKString IDK_GetAppName( IDKApp App ) {
     
     return App->AppName ;
@@ -703,6 +754,15 @@ static GLFWwindow* IDKMakeGLFWWindow( IDKApp App, int win_width, int win_height,
     
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
     
+     if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress)) {
+         
+         if ( App->ErrorCallBackFunc != NULL ) App->ErrorCallBackFunc(App, idk_glad_error) ;
+        
+        glfwTerminate() ;
+        
+        exit(EXIT_FAILURE) ;
+    }
+    
     return window ;
 }
 
@@ -837,6 +897,22 @@ IDKWindow IDK_NewWindow( IDKApp App, int win_width, int win_height, const char* 
     
     #endif
     
+    #ifdef _WIN32
+    
+    const void* IDKSetupFullScreenForWin( IDKWindow idk_window ) ;
+    
+    NewWindow->fullscreen_state = IDKSetupFullScreenForWin( NewWindow ) ;
+     
+    void IDKEnterFullScreenForWin( const void* fullscreen_state ) ;
+
+    void IDKExitFullScreenForWin( const void* fullscreen_state ) ;
+
+    NewWindow->EnterFullScreen = IDKEnterFullScreenForWin ;
+
+    NewWindow->ExitFullScreen = IDKExitFullScreenForWin ;
+     
+    #endif
+    
     return NewWindow ;
 }
 
@@ -849,6 +925,14 @@ void IDK_DestroyWindow( IDKWindow window ) {
     void IDKKillFullScreenForMac( const void* fullscreen_state ) ;
     
     IDKKillFullScreenForMac(window->fullscreen_state) ;
+    
+    #endif
+    
+    #ifdef _WIN32
+    
+    void IDKKillFullScreenForWin( const void* fullscreen_state ) ;
+    
+    IDKKillFullScreenForWin(window->fullscreen_state) ;
     
     #endif
     
@@ -886,6 +970,11 @@ void IDKSetFullScreenFlag( IDKWindow window, int is_fullscreen ) {
        
         window->is_fullscreen = 0 ;
     }
+}
+
+int IDK_IsFullscreen( IDKWindow window ) {
+    
+    return window->is_fullscreen ;
 }
 
 void IDK_EnterFullscreen( IDKWindow window ) {
@@ -1270,9 +1359,17 @@ static const char* IDKGetFilePathForThePlatform( IDKApp App, IDKLoadFileType fil
     
     #ifdef __APPLE__
     
-    const char* IDKGetFilePathForMac( IDKApp App, IDKLoadFileType filetype ) ;
+    RKString IDKGetFilePathForMac( IDKApp App, IDKLoadFileType filetype ) ;
     
-    return IDKGetFilePathForMac(App, filetype) ;
+    return  RKString_ConvertToCString(IDKGetFilePathForMac(App, filetype)) ;
+    
+    #endif
+    
+    #ifdef _WIN32
+    
+    RKString IDKGetFilePathForWin( IDKApp App, IDKLoadFileType filetype ) ;
+    
+    return RKString_ConvertToCString(IDKGetFilePathForWin(App, filetype)) ;
     
     #endif
     
@@ -1299,13 +1396,15 @@ static const char* IDKGetFilePathForThePlatform( IDKApp App, IDKLoadFileType fil
     
     #ifdef _WIN32
     
-     sprintf(the_file_path,"%s\%s",path_base,path) ;
+     sprintf(the_file_path,"%s\\%s",path_base,path) ;
      
     #else
      
      sprintf(the_file_path,"%s/%s",path_base,path) ;
      
     #endif
+    
+    free((char*)path_base) ;
     
     return the_file_path ;
 
@@ -1320,7 +1419,7 @@ FILE* IDK_LoadFile( IDKApp App, IDKLoadFileType filetype, const char* path, cons
     if ( the_file_path == NULL ) return NULL ;
     
     file = fopen(the_file_path, mode) ;
-    
+     
     free(the_file_path) ;
     
     return file ;

@@ -15,12 +15,13 @@
  TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifdef  __APPLE__ 
+
 #import <Cocoa/Cocoa.h>
 #include <sys/stat.h>
-#include <unistd.h>
 #include <IDK/IDK.h>
 
-static const char* IDKMacGetAppSupportDir( IDKApp App ) {
+static char* IDKMacGetAppSupportDir( IDKApp App ) {
     
     static int makedir = 1 ;
     
@@ -44,7 +45,7 @@ static const char* IDKMacGetAppSupportDir( IDKApp App ) {
         
         if ( the_bundle_id == NULL ) the_bundle_id = [idk_bundle_id_string stringByAppendingString:app_name] ;
         
-        app_path = [the_appsupport_dir URLByAppendingPathComponent:the_bundle_id];
+        app_path = [the_appsupport_dir URLByAppendingPathComponent:the_bundle_id] ;
     }
     
     if ( makedir ) {
@@ -54,21 +55,27 @@ static const char* IDKMacGetAppSupportDir( IDKApp App ) {
         makedir = 0 ;
     }
     
-    return app_path.fileSystemRepresentation ;
+    return (char*)app_path.fileSystemRepresentation ;
 }
 
-static const char* IDKMacGetResourcePath( void ) {
+static char* IDKMacGetResourcePath( void ) {
     
     NSString* resourcePath = [NSBundle mainBundle].resourcePath ;
     
-    return [resourcePath cStringUsingEncoding:NSASCIIStringEncoding] ;
+    return (char*)[resourcePath cStringUsingEncoding:NSASCIIStringEncoding] ;
 }
 
-const char* IDKGetFilePathForMac( IDKApp App, IDKLoadFileType filetype ) {
+RKString IDKGetFilePathForMac( IDKApp App, IDKLoadFileType filetype ) {
     
-    if ( filetype == idk_resource_file ) return IDKMacGetResourcePath() ;
+    char* path = NULL ;
     
-    if ( filetype == idk_data_file ) return IDKMacGetAppSupportDir(App) ;
+    if ( filetype == idk_resource_file ) path = IDKMacGetResourcePath()  ;
+    
+    if ( filetype == idk_data_file ) path = IDKMacGetAppSupportDir(App) ;
+    
+    if ( path != NULL ) return RKString_NewStringFromCString(path) ;
     
     return NULL ;
 }
+
+#endif

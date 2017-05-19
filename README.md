@@ -17,11 +17,13 @@ IDK, or Interactive Development Kit provides the basis for an interactive applic
 Current Limitations:
 
 Even though IDK is based on the cross-platform GLFW, and is intended to be cross-platform, in its current state it will
-only work on Mac OS X. Planned to be ported to Windows and Linux.
+only work on Mac OS X, and Windows. Linux support is planned.
 
 
 Dependencies: 
 
- -RKLib
+ -RKLib https://github.com/JHG777000/RKLib
+
+ -GLAD https://github.com/Dav1dde/glad
 
  -GLFW http://www.glfw.org

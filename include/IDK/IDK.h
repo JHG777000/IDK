@@ -19,10 +19,16 @@
 #define __IDKApp__IDK__
 
 #include <stdio.h>
+#include <stdlib.h>
 
-#define GLFW_INCLUDE_GLCOREARB
-#define GLFW_INCLUDE_GLEXT
+#include <glad/glad.h>
 
+#ifdef _WIN32
+
+#define GLFW_EXPOSE_NATIVE_WIN32
+#define GLFW_EXPOSE_NATIVE_WGL
+
+#endif
 
 #ifdef __APPLE__
 
@@ -50,7 +56,7 @@ typedef struct IDK_Line_s* IDKTextLine ;
 
 typedef struct IDKApp_s* IDKApp ;
 
-typedef enum { idk_glfw_error, idk_app_error, idk_window_error } IDKErrorType ;
+typedef enum { idk_glad_error, idk_glfw_error, idk_app_error, idk_window_error } IDKErrorType ;
 
 typedef void (*IDKFullScreenFuncType)( const void* fullscreen_state) ;
 
@@ -195,6 +201,8 @@ IDKApp IDK_NewApp( RKString AppName, float Version, IDKErrorCallBackFuncType Err
 
 void IDK_DestroyApp( IDKApp App ) ;
 
+void IDK_LogVersion( IDKApp App ) ;
+
 RKString IDK_GetAppName( IDKApp App ) ;
 
 float IDK_GetAppVersion( IDKApp App ) ;
@@ -238,6 +246,8 @@ void IDK_SetWindowSize( IDKWindow window, int width, int height ) ;
 void IDK_GetWindowSize( IDKWindow window, int *width, int *height ) ;
 
 void IDK_GetRasterSize( IDKWindow window, int* width, int* height ) ;
+
+int IDK_IsFullscreen( IDKWindow window ) ;
 
 void IDK_EnterFullscreen( IDKWindow window ) ;
 
