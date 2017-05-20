@@ -231,7 +231,7 @@ static void IDKDeallocKeyboard( IDKWindow window ) {
     free(window->KeyArray) ;
 }
 
-static void IDK_SetKey( IDKWindow window, int key ) {
+static void IDKSetKey( IDKWindow window, int key ) {
     
     window->KeyArray[key] = 1 ;
 }
@@ -241,17 +241,17 @@ int IDK_GetKey( IDKWindow window, int key ) {
     return window->KeyArray[key] ;
 }
 
-static void IDK_ResetKey( IDKWindow window, int key ) {
+static void IDKResetKey( IDKWindow window, int key ) {
     
     window->KeyArray[key] = 0 ;
 }
 
-static void IDK_SetLeftMouseButton( IDKWindow window ) {
+static void IDKSetLeftMouseButton( IDKWindow window ) {
     
     window->MouseLeft = 1 ;
 }
 
-static void IDK_ResetLeftMouseButton( IDKWindow window ) {
+static void IDKResetLeftMouseButton( IDKWindow window ) {
     
     window->MouseLeft = 0 ;
 }
@@ -261,12 +261,12 @@ int IDK_GetLeftMouseButton( IDKWindow window ) {
     return window->MouseLeft ;
 }
 
-static void IDK_SetRightMouseButton( IDKWindow window ) {
+static void IDKSetRightMouseButton( IDKWindow window ) {
     
     window->MouseRight = 1 ;
 }
 
-static void IDK_ResetRightMouseButton( IDKWindow window ) {
+static void IDKResetRightMouseButton( IDKWindow window ) {
     
     window->MouseRight = 0 ;
 }
@@ -276,12 +276,12 @@ int IDK_GetRightMouseButton( IDKWindow window ) {
     return window->MouseRight ;
 }
 
-static void IDK_ResetMiddleMouseButton( IDKWindow window ) {
+static void IDKResetMiddleMouseButton( IDKWindow window ) {
     
     window->MouseMiddle = 0 ;
 }
 
-static void IDK_SetMiddleMouseButton( IDKWindow window ) {
+static void IDKSetMiddleMouseButton( IDKWindow window ) {
     
     window->MouseMiddle = 1 ;
 }

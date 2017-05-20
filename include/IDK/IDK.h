@@ -185,16 +185,16 @@ int IDK_GetKey( IDKWindow window, int key ) ;
 
 #define IDK_KeyboardMacro(window,action,press,release,key) \
 if ( action == press ) { \
-IDK_SetKey(window,key) ; \
+IDKSetKey(window,key) ; \
 } else if ( action == release ) {\
-IDK_ResetKey(window,key) ;\
+IDKResetKey(window,key) ;\
 }
 
 #define IDK_MouseMacro(window,action,press,release,button) \
 if ( action == press ) { \
-IDK_Set ## button ## MouseButton(window) ; \
+IDKSet ## button ## MouseButton(window) ; \
 } else if ( action == release ) {\
-IDK_Reset ## button ## MouseButton(window) ;\
+IDKReset ## button ## MouseButton(window) ;\
 }
 
 IDKApp IDK_NewApp( RKString AppName, float Version, IDKErrorCallBackFuncType ErrorCallBackFunc ) ;
