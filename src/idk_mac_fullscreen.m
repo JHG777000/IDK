@@ -80,7 +80,7 @@ void IDKEnterOrExitFullScreenForMac( const void* fullscreen_state ) {
 
 -(void)EnterOrExitFullScreen {
     
-    [ glfwGetCocoaWindow((GLFWwindow*)IDK_GetPtrToGLFWWindow(self.idk_window)) toggleFullScreen:self ] ;
+    [glfwGetCocoaWindow(IDK_GetPtrToGLFWWindow(self.idk_window)) toggleFullScreen:self] ;
     
 }
 

@@ -15,7 +15,7 @@
  TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
  
- #ifdef _WIN32
+#ifdef _WIN32
  
 #include <direct.h>
 
@@ -70,7 +70,7 @@ static char* IDKWinGetAppDataDir( IDKApp App ) {
      return NULL ;
 }
 
-RKString IDKGetFilePathForWin(   IDKApp App, IDKLoadFileType filetype ) {
+RKString IDKGetFilePathForWin( IDKApp App, IDKLoadFileType filetype ) {
     
     char* path = NULL ;
     
@@ -84,6 +84,8 @@ RKString IDKGetFilePathForWin(   IDKApp App, IDKLoadFileType filetype ) {
     if ( filetype == idk_data_file ) {
         
         path = IDKWinGetAppDataDir(App) ;
+        
+        if ( path == NULL ) return NULL ;
         
         string = RKString_NewStringFromCString(path) ;
         
