@@ -65,7 +65,7 @@ static char* IDKWinGetAppDataDir( IDKApp App ) {
      
      char* path = _getcwd(buffer,1024) ;
      
-     if ( path != NULL )  return  RKString_NewStringFromCString(path) ;
+     if ( path != NULL ) return RKString_NewStringFromCString(path) ;
      
      return NULL ;
 }
