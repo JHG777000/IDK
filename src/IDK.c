@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2017 Jacob Gordon. All rights reserved.
+ Copyright (c) 2016-2018 Jacob Gordon. All rights reserved.
  
  Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
  
@@ -815,6 +815,10 @@ void IDK_WindowRunLoop( IDKWindow window, IDKWindowRunLoopFuncType IDKWindowRunL
     while (!glfwWindowShouldClose(window->glfw_window)) {
         
         glfwPollEvents() ;
+        
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) ;
+        
+        glClearColor(0.5f, 0.5f, 0.5f, 1.0f) ;
         
         IDKWindowRunLoopFunc(RunArgs) ;
         
