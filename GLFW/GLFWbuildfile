@@ -128,9 +128,9 @@ build GLFWBuild.
 
   libraries libs("gdi32").
 
-   files win("win32_init.c", "win32_joystick.c",
-    "win32_monitor.c", "win32_time.c", "win32_thread.c", "win32_window.c",
-    "wgl_context.c", "egl_context.c", "osmesa_context.c").
+   files win("src/win32_init.c", "src/win32_joystick.c",
+    "src/win32_monitor.c", "src/win32_time.c", "src/win32_thread.c", "src/win32_window.c",
+    "src/wgl_context.c", "src/egl_context.c", "src/osmesa_context.c").
 
   sources GLFWSource(common,win,libs).
 
@@ -162,25 +162,25 @@ if ( is_linux ).
 
  if ( a_wayland_build ).
 
- files linux("wl_init.c", "wl_monitor.c", "wl_window.c",
-  "posix_time.c", "posix_thread.c", "xkb_unicode.c",
-  "egl_context.c", "osmesa_context.c").
+ files linux("src/wl_init.c", "src/wl_monitor.c", "src/wl_window.c",
+  "src/posix_time.c", "src/posix_thread.c", "src/xkb_unicode.c",
+  "src/egl_context.c", "src/osmesa_context.c").
 
   end if.
 
  if ( mir_build ).
 
- files linux("mir_init.c", "mir_monitor.c", "mir_window.c",
-  "linux_joystick.c", "posix_time.c", "posix_thread.c", "xkb_unicode.c",
-  "egl_context.c", "osmesa_context.c", "linux_joystick.c").
+ files linux("src/mir_init.c", "src/mir_monitor.c", "src/mir_window.c",
+  "src/linux_joystick.c", "src/posix_time.c", "src/posix_thread.c", "src/xkb_unicode.c",
+  "src/egl_context.c", "src/osmesa_context.c", "src/linux_joystick.c").
 
  end if.
 
  if ( x11_build ).
 
- files linux("x11_init.c", "x11_monitor.c", "x11_window.c",
-  "xkb_unicode.c", "posix_time.c", "posix_thread.c", "glx_context.c",
-  "egl_context.c", "osmesa_context.c", "linux_joystick.c").
+ files linux("src/x11_init.c", "src/x11_monitor.c", "src/x11_window.c",
+  "src/xkb_unicode.c", "src/posix_time.c", "src/posix_thread.c", "src/glx_context.c",
+  "src/egl_context.c", "src/osmesa_context.c", "src/linux_joystick.c").
 
  end if.
 

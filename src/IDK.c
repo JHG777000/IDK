@@ -125,7 +125,7 @@ void IDK_LogVersion( IDKApp App ) {
     
      glfwGetVersion(&major, &minor, &revision) ;
     
-     IDKLog(App, "IDK, linked against: GLFW ", 0, 0) ;
+     IDKLog(App, "IDK, compiled against: GLFW ", 0, 0) ;
     
      IDKLogInt(App, major, 0, 0) ;
     

@@ -1,7 +1,7 @@
 
 project := "IDKProject".
 
-project_version := "1.0".
+project_version := "1.0.1".
 
 buildfile_version := "1.0".
 
@@ -65,9 +65,25 @@ build IDKBuild.
 
  make filepath rklib_include_path from "resources" to "include" from RKLibProject.
 
- files IDKFiles("src.directory").
+if ( is_mac ).
+
+ files IDKFiles("src/glad.c","src/IDK.c","src/idk_mac_filesystem.m",
+       "src/idk_mac_fullscreen.m").
 
  sources IDKSource(IDKFiles).
+
+end if.
+
+if ( is_win ).
+
+ libraries IDKLibraries("uuid","ole32").
+
+ files IDKFiles("src/glad.c","src/IDK.c", "src/idk_win_filesystem.c",
+       "src/idk_win_fullscreen.c").
+
+ sources IDKSource(IDKFiles,IDKLibraries).
+
+end if.
 
  compiler IDKCompilerFlags("-Wall", "-I " + include_path, "-I " + rklib_include_path,
           "-I " + glfw_include_path).
@@ -86,7 +102,7 @@ build IDKBuild.
 
   files IDKTestFiles("main.c").
 
-  sources IDKTestSource(IDKTestFiles,IDK,libglfw3,RKLib).
+  sources IDKTestSource(IDKTestFiles,RKLib,libglfw3,IDK).
 
   output IDKTest("application",IDKTestSource,IDKToolChain).
 
