@@ -20,10 +20,25 @@ Even though IDK is based on the cross-platform GLFW, and is intended to be cross
 only work on Mac OS X, and Windows. Linux support is planned.
 
 
-Dependencies: 
+Uses: 
 
  -RKLib https://github.com/JHG777000/RKLib
 
  -GLAD https://github.com/Dav1dde/glad
 
  -GLFW http://www.glfw.org
+ 
+## Building
+
+IDK uses [builder][1] for its build system.
+
+[1]:https://github.com/JHG777000/builder
+
+To download and build use this command:
+
+
+	builder -u https://raw.githubusercontent.com/JHG777000/IDK/master/buildfile
+	
+To run test, add -i __t:
+
+	builder -i __t -u https://raw.githubusercontent.com/JHG777000/IDK/master/buildfile
