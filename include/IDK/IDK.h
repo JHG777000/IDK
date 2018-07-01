@@ -46,6 +46,10 @@
 #include <RKLib/RKMath.h>
 #include <RKLib/RKTasks.h>
 
+#ifndef DO_NOT_INCLUDE_NUKLEAR
+ #include <nuklear.h>
+#endif
+
 typedef double (*IDKGetTimeHPFuncType)(void) ;
 
 typedef struct IDKWindow_s* IDKWindow ;
@@ -67,6 +71,8 @@ typedef void (*IDKWindowRunLoopFuncType)(RKArgs args) ;
 typedef void (*IDKWindowQuitRunLoopFuncType)(RKArgs args) ;
 
 typedef void (*IDKErrorCallBackFuncType)(IDKApp App, IDKErrorType ErrorType) ;
+
+typedef void (*IDKNuklearCallBackFuncType)( IDKWindow window, struct nk_context *ctx ) ;
 
 #define IDK_DefineKey(key,lastkey) key = (lastkey + 1)
 
@@ -217,6 +223,8 @@ void IDKLogDouble( IDKApp App, double val, int newline, int error ) ;
 
 void IDK_SetRasterResizeFunc( IDKWindow window, IDKRasterResizeFuncType RasterResizeFunc ) ;
 
+void IDK_SetNuklearCallBack( IDKWindow window, IDKNuklearCallBackFuncType NuklearCallBack ) ;
+
 IDKWindow IDK_NewWindow( IDKApp App, int win_width, int win_height, const char* win_title, IDKRasterResizeFuncType RasterResizeFunc ) ;
 
 void IDK_DestroyWindow( IDKWindow window ) ;
@@ -226,6 +234,8 @@ void IDK_EnableVsync( IDKWindow window ) ;
 void IDK_DisableVsync( IDKWindow window ) ;
 
 void IDK_SetWindowContextCurrent( IDKWindow window ) ;
+
+void IDK_SetWindowBackGroundColor( IDKWindow window, float red, float green, float blue, float alpha ) ;
 
 void IDK_CloseWindow( IDKWindow window ) ;
 

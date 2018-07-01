@@ -1,19 +1,3 @@
-/*
- Copyright (c) 2018 Jacob Gordon. All rights reserved.
- 
- Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
- 
- 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
- 
- 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the
- documentation and/or other materials provided with the distribution.
- 
- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
- TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 
 #include <IDK/IDK.h>
 
@@ -28,11 +12,65 @@ void EndLoopFunc( RKArgs args ) {
     
 }
 
+void NuklearFunc( IDKWindow window, struct nk_context *ctx ) {
+    
+    //Nuklear example from: nuklear/demo/glfw_opengl3/main.c
+    
+    static struct nk_colorf bg;
+    
+    static int init = 0 ;
+    
+    if (!init) {
+        
+        bg.r = 0.10f, bg.g = 0.18f, bg.b = 0.24f, bg.a = 1.0f;
+        
+        init++ ;
+    }
+    
+    if (nk_begin(ctx, "Demo", nk_rect(50, 50, 230, 250),
+                 NK_WINDOW_BORDER|NK_WINDOW_MOVABLE|NK_WINDOW_SCALABLE|
+                 NK_WINDOW_MINIMIZABLE|NK_WINDOW_TITLE))
+    {
+        enum {EASY, HARD};
+        static int op = EASY;
+        static int property = 20;
+        nk_layout_row_static(ctx, 30, 80, 1);
+        if (nk_button_label(ctx, "button"))
+            fprintf(stdout, "button pressed\n");
+        
+        nk_layout_row_dynamic(ctx, 30, 2);
+        if (nk_option_label(ctx, "easy", op == EASY)) op = EASY;
+        if (nk_option_label(ctx, "hard", op == HARD)) op = HARD;
+        
+        nk_layout_row_dynamic(ctx, 25, 1);
+        nk_property_int(ctx, "Compression:", 0, &property, 100, 10, 1);
+        
+        nk_layout_row_dynamic(ctx, 20, 1);
+        nk_label(ctx, "background:", NK_TEXT_LEFT);
+        nk_layout_row_dynamic(ctx, 25, 1);
+        if (nk_combo_begin_color(ctx, nk_rgb_cf(bg), nk_vec2(nk_widget_width(ctx),400))) {
+            nk_layout_row_dynamic(ctx, 120, 1);
+            bg = nk_color_picker(ctx, bg, NK_RGBA);
+            nk_layout_row_dynamic(ctx, 25, 1);
+            bg.r = nk_propertyf(ctx, "#R:", 0, bg.r, 1.0f, 0.01f,0.005f);
+            bg.g = nk_propertyf(ctx, "#G:", 0, bg.g, 1.0f, 0.01f,0.005f);
+            bg.b = nk_propertyf(ctx, "#B:", 0, bg.b, 1.0f, 0.01f,0.005f);
+            bg.a = nk_propertyf(ctx, "#A:", 0, bg.a, 1.0f, 0.01f,0.005f);
+            nk_combo_end(ctx);
+        }
+    }
+    nk_end(ctx);
+    
+    IDK_SetWindowBackGroundColor(window, bg.r, bg.g, bg.b, bg.a) ;
+}
+
 int main(int argc, const char * argv[]) {
     
     IDKApp App = IDK_NewApp(rkstr("idk_test_app"), 0, NULL) ;
     
     IDKWindow Window = IDK_NewWindow(App, 1366, 768, "Hello World!!!!", NULL) ;
+    
+    IDK_SetNuklearCallBack(Window, NuklearFunc) ;
     
     IDK_WindowRunLoop(Window, RunLoopFunc, NULL, EndLoopFunc, NULL) ;
 }

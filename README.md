@@ -14,6 +14,12 @@ IDK, or Interactive Development Kit provides the basis for an interactive applic
 
 -Basic Logfile system
 
+-Built-in support for the [Nuklear][2] GUI toolkit(Nuklear is included)
+
+[2]:https://github.com/vurtun/nuklear
+
+See main.c for an example.
+
 Current Limitations:
 
 Even though IDK is based on the cross-platform GLFW, and is intended to be cross-platform, in its current state it will
@@ -23,6 +29,8 @@ only work on Mac OS X, and Windows. Linux support is planned.
 Uses: 
 
  -RKLib https://github.com/JHG777000/RKLib
+ 
+ -Nuklear https://github.com/vurtun/nuklear
 
  -GLAD https://github.com/Dav1dde/glad
 

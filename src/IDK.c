@@ -19,7 +19,22 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
-#include <IDK/IDK.h>
+
+#define DO_NOT_INCLUDE_NUKLEAR
+ #include <IDK/IDK.h>
+#undef DO_NOT_INCLUDE_NUKLEAR
+
+#define NK_INCLUDE_FIXED_TYPES
+#define NK_INCLUDE_STANDARD_IO
+#define NK_INCLUDE_STANDARD_VARARGS
+#define NK_INCLUDE_DEFAULT_ALLOCATOR
+#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
+#define NK_INCLUDE_FONT_BAKING
+#define NK_INCLUDE_DEFAULT_FONT
+#define NK_IMPLEMENTATION
+#define NK_GLFW_GL3_IMPLEMENTATION
+#include <nuklear.h>
+#include <nuklear_glfw_gl3.h>
 
 typedef struct IDKFPSState_s { int init ; int numofframes ; double time_count ; double fps ; }* IDKFPSState ;
 
@@ -27,11 +42,13 @@ struct IDKApp_s { RKString AppName ; IDKFPSState lowp_fps ; IDKFPSState highp_fp
     
 IDKErrorCallBackFuncType ErrorCallBackFunc ; FILE* LogFile ; float Version ; RKTasks_ThreadGroup Threads ;  } ;
 
-struct IDKWindow_s { IDKApp App ; int is_fullscreen ; const void* fullscreen_state ; IDKRasterResizeFuncType RasterResizeFunc ; IDKFullScreenFuncType
+struct IDKWindow_s { IDKApp App ; int is_fullscreen ; const void* fullscreen_state ; IDKRasterResizeFuncType RasterResizeFunc ;
     
-EnterFullScreen ; IDKFullScreenFuncType ExitFullScreen ; GLFWwindow* glfw_window ; void* ptr ;  RKList PageList ; int* KeyArray ; int MouseLeft ; int MouseMiddle ;
-
-int MouseRight ; int  MouseActive ; float MouseX  ; float MouseY ; } ;
+IDKFullScreenFuncType EnterFullScreen ; IDKFullScreenFuncType ExitFullScreen ; IDKNuklearCallBackFuncType NuklearCallBack ;
+    
+GLFWwindow* glfw_window ; struct nk_context* ctx ; void* ptr ;  RKList PageList ; int* KeyArray ; int MouseLeft ; int MouseMiddle ;
+    
+int MouseRight ; int  MouseActive ; float MouseX  ; float MouseY ; RKMath_NewVector(background_color, 4) ; } ;
 
 struct IDK_Page_s { IDKWindow window ; char* text ; int num_of_text ; int new ; int max_num_of_text ; int cursor ; float pos ; int init ; int mode ; RKList_node node ; } ;
 
@@ -715,7 +732,7 @@ static void IDKFramebufferSizeCallback(GLFWwindow* window, int width, int height
     if (idk_window->RasterResizeFunc != NULL) idk_window->RasterResizeFunc(idk_window,width,height) ;
 }
 
-static GLFWwindow* IDKMakeGLFWWindow( IDKApp App, int win_width, int win_height, const char* win_title ) {
+static GLFWwindow* IDKMakeGLFWWindow( IDKApp App, IDKWindow new_window, int win_width, int win_height, const char* win_title ) {
     
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,3);
     
@@ -763,6 +780,19 @@ static GLFWwindow* IDKMakeGLFWWindow( IDKApp App, int win_width, int win_height,
         exit(EXIT_FAILURE) ;
     }
     
+    new_window->ctx = nk_glfw3_init(window, NK_GLFW3_INSTALL_CALLBACKS);
+    
+    struct nk_font_atlas *atlas;
+    
+    nk_glfw3_font_stash_begin(&atlas);
+    nk_glfw3_font_stash_end();
+    nk_style_load_all_cursors(new_window->ctx, atlas->cursors) ;
+    
+    int width, height ;
+    
+    glfwGetWindowSize(window, &width, &height);
+    glViewport(0, 0, width, height);
+    
     return window ;
 }
 
@@ -783,6 +813,17 @@ void IDK_DisableVsync( IDKWindow window ) {
 void IDK_SetWindowContextCurrent( IDKWindow window ) {
     
     glfwMakeContextCurrent(window->glfw_window) ;
+}
+
+void IDK_SetWindowBackGroundColor( IDKWindow window, float red, float green, float blue, float alpha ) {
+    
+    window->background_color[RKM_R] = red ;
+    
+    window->background_color[RKM_G] = green ;
+    
+    window->background_color[RKM_B] = blue ;
+    
+    window->background_color[RKM_A] = alpha ;
 }
 
 void IDK_CloseWindow( IDKWindow window ) {
@@ -812,16 +853,27 @@ void IDK_WindowRunLoopWithTime( IDKWindow window, double seconds, IDKWindowRunLo
 
 void IDK_WindowRunLoop( IDKWindow window, IDKWindowRunLoopFuncType IDKWindowRunLoopFunc, RKArgs RunArgs, IDKWindowQuitRunLoopFuncType IDKWindowQuitRunLoopFunc, RKArgs QuitArgs ) {
     
+    #define MAX_VERTEX_BUFFER 512 * 1024
+    #define MAX_ELEMENT_BUFFER 128 * 1024
+    
     while (!glfwWindowShouldClose(window->glfw_window)) {
         
         glfwPollEvents() ;
+        nk_glfw3_new_frame();
+        
+        int width, height ;
+        glfwGetWindowSize(window->glfw_window, &width, &height);
+        glViewport(0, 0, width, height);
         
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) ;
         
-        glClearColor(0.5f, 0.5f, 0.5f, 1.0f) ;
+        glClearColor(window->background_color[RKM_R], window->background_color[RKM_G], window->background_color[RKM_B], window->background_color[RKM_A]) ;
         
         IDKWindowRunLoopFunc(RunArgs) ;
         
+        if ( window->NuklearCallBack != NULL ) window->NuklearCallBack(window,window->ctx) ;
+        
+        nk_glfw3_render(NK_ANTI_ALIASING_ON, MAX_VERTEX_BUFFER, MAX_ELEMENT_BUFFER);
         glfwSwapBuffers(window->glfw_window) ;
     }
     
@@ -851,6 +903,11 @@ IDKApp IDK_GetAppFromWindow( IDKWindow window ) {
 void IDK_SetRasterResizeFunc( IDKWindow window, IDKRasterResizeFuncType RasterResizeFunc ) {
     
     window->RasterResizeFunc = RasterResizeFunc ;
+}
+
+void IDK_SetNuklearCallBack( IDKWindow window, IDKNuklearCallBackFuncType NuklearCallBack ) {
+    
+    window->NuklearCallBack = NuklearCallBack ;
 }
 
 IDKWindow IDK_NewWindow( IDKApp App, int win_width, int win_height, const char* win_title, IDKRasterResizeFuncType RasterResizeFunc ) {
@@ -883,7 +940,13 @@ IDKWindow IDK_NewWindow( IDKApp App, int win_width, int win_height, const char* 
     
     NewWindow->RasterResizeFunc = RasterResizeFunc ;
     
-    NewWindow->glfw_window = IDKMakeGLFWWindow( App, win_width, win_height, win_title ) ;
+    NewWindow->NuklearCallBack = NULL ;
+    
+    RKMath_Set_Vec_Equal_To_A_Const(NewWindow->background_color, 0.5f, 4) ;
+    
+    NewWindow->background_color[RKM_A] = 1.0f ;
+    
+    NewWindow->glfw_window = IDKMakeGLFWWindow( App, NewWindow, win_width, win_height, win_title ) ;
     
     glfwSetWindowUserPointer( NewWindow->glfw_window, (void*)NewWindow ) ;
     
@@ -1531,6 +1594,8 @@ static void IDKGlfwInit( IDKApp App ) {
 }
 
 static void IDKGlfwKill(void) {
+    
+    nk_glfw3_shutdown();
     
     glfwTerminate() ;
 }
