@@ -164,7 +164,7 @@ if ( is_linux ).
 
  files linux("src/wl_init.c", "src/wl_monitor.c", "src/wl_window.c",
   "src/posix_time.c", "src/posix_thread.c", "src/xkb_unicode.c",
-  "src/egl_context.c", "src/osmesa_context.c").
+  "src/egl_context.c", "src/osmesa_context.c", "src/linux_joystick.c").
 
   end if.
 
@@ -172,7 +172,7 @@ if ( is_linux ).
 
  files linux("src/mir_init.c", "src/mir_monitor.c", "src/mir_window.c",
   "src/linux_joystick.c", "src/posix_time.c", "src/posix_thread.c", "src/xkb_unicode.c",
-  "src/egl_context.c", "src/osmesa_context.c", "src/linux_joystick.c").
+  "src/egl_context.c", "src/osmesa_context.c").
 
  end if.
 
