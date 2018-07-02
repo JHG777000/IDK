@@ -826,6 +826,17 @@ void IDK_SetWindowBackGroundColor( IDKWindow window, float red, float green, flo
     window->background_color[RKM_A] = alpha ;
 }
 
+void IDK_GetWindowBackGroundColor( IDKWindow window, float* red, float* green, float* blue, float* alpha ) {
+    
+    *red = window->background_color[RKM_R] ;
+    
+    *green = window->background_color[RKM_G] ;
+    
+    *blue = window->background_color[RKM_B] ;
+    
+    *alpha = window->background_color[RKM_A] ;
+}
+
 void IDK_CloseWindow( IDKWindow window ) {
     
     glfwSetWindowShouldClose(window->glfw_window, 1) ;

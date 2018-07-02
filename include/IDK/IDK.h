@@ -246,6 +246,8 @@ void IDK_SetWindowContextCurrent( IDKWindow window ) ;
 
 void IDK_SetWindowBackGroundColor( IDKWindow window, float red, float green, float blue, float alpha ) ;
 
+void IDK_GetWindowBackGroundColor( IDKWindow window, float* red, float* green, float* blue, float* alpha ) ;
+
 void IDK_CloseWindow( IDKWindow window ) ;
 
 void IDK_WindowRunLoop( IDKWindow window, IDKWindowRunLoopFuncType IDKWindowRunLoopFunc, RKArgs RunArgs, IDKWindowQuitRunLoopFuncType IDKWindowQuitRunLoopFunc, RKArgs QuitArgs )  ;

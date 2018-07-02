@@ -1,7 +1,7 @@
 
 project := "IDKProject".
 
-project_version := "1.0.5".
+project_version := "1.0.6".
 
 buildfile_version := "1.0".
 
