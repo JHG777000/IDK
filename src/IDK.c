@@ -44,7 +44,7 @@ IDKErrorCallBackFuncType ErrorCallBackFunc ; FILE* LogFile ; float Version ; RKT
 
 struct IDKWindow_s { IDKApp App ; int is_fullscreen ; const void* fullscreen_state ; IDKRasterResizeFuncType RasterResizeFunc ;
     
-IDKFullScreenFuncType EnterFullScreen ; IDKFullScreenFuncType ExitFullScreen ; IDKNuklearCallBackFuncType NuklearCallBack ;
+IDKFullScreenFuncType EnterFullScreen ; IDKFullScreenFuncType ExitFullScreen ; IDKNuklearCallBackFuncType NuklearCallBack ; RKArgs NuklearArgs ;
     
 GLFWwindow* glfw_window ; struct nk_context* ctx ; void* ptr ;  RKList PageList ; int* KeyArray ; int MouseLeft ; int MouseMiddle ;
     
@@ -831,7 +831,11 @@ void IDK_CloseWindow( IDKWindow window ) {
     glfwSetWindowShouldClose(window->glfw_window, 1) ;
 }
 
-void IDK_WindowRunLoopWithTime( IDKWindow window, double seconds, IDKWindowRunLoopFuncType IDKWindowRunLoopFunc, RKArgs RunArgs, IDKWindowQuitRunLoopFuncType IDKWindowQuitRunLoopFunc, RKArgs QuitArgs ) {
+void IDK_WindowRunLoopWithTime( IDKWindow window, double seconds, IDKWindowRunLoopFuncType IDKWindowRunLoopFunc, RKArgs RunArgs,
+                               IDKWindowQuitRunLoopFuncType IDKWindowQuitRunLoopFunc, RKArgs QuitArgs ) {
+    
+    #define MAX_VERTEX_BUFFER 512 * 1024
+    #define MAX_ELEMENT_BUFFER 128 * 1024
     
     double time_count = IDK_GetTimeHP(window->App) ;
     
@@ -840,9 +844,21 @@ void IDK_WindowRunLoopWithTime( IDKWindow window, double seconds, IDKWindowRunLo
         if ( IDK_Timer_HP(window->App, &time_count, seconds) ) {
         
            glfwPollEvents() ;
+           nk_glfw3_new_frame() ;
+            
+           int width, height ;
+           glfwGetWindowSize(window->glfw_window, &width, &height) ;
+           glViewport(0, 0, width, height) ;
+            
+           glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) ; 
+            
+           glClearColor(window->background_color[RKM_R], window->background_color[RKM_G], window->background_color[RKM_B], window->background_color[RKM_A]) ;
         
            IDKWindowRunLoopFunc(RunArgs) ;
-        
+            
+           if ( window->NuklearCallBack != NULL ) window->NuklearCallBack(window,window->ctx,window->NuklearArgs) ;
+            
+           nk_glfw3_render(NK_ANTI_ALIASING_ON, MAX_VERTEX_BUFFER, MAX_ELEMENT_BUFFER) ;
            glfwSwapBuffers(window->glfw_window) ;
             
         }
@@ -859,11 +875,11 @@ void IDK_WindowRunLoop( IDKWindow window, IDKWindowRunLoopFuncType IDKWindowRunL
     while (!glfwWindowShouldClose(window->glfw_window)) {
         
         glfwPollEvents() ;
-        nk_glfw3_new_frame();
+        nk_glfw3_new_frame() ;
         
         int width, height ;
-        glfwGetWindowSize(window->glfw_window, &width, &height);
-        glViewport(0, 0, width, height);
+        glfwGetWindowSize(window->glfw_window, &width, &height) ;
+        glViewport(0, 0, width, height) ;
         
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) ;
         
@@ -871,9 +887,9 @@ void IDK_WindowRunLoop( IDKWindow window, IDKWindowRunLoopFuncType IDKWindowRunL
         
         IDKWindowRunLoopFunc(RunArgs) ;
         
-        if ( window->NuklearCallBack != NULL ) window->NuklearCallBack(window,window->ctx) ;
+        if ( window->NuklearCallBack != NULL ) window->NuklearCallBack(window,window->ctx,window->NuklearArgs) ;
         
-        nk_glfw3_render(NK_ANTI_ALIASING_ON, MAX_VERTEX_BUFFER, MAX_ELEMENT_BUFFER);
+        nk_glfw3_render(NK_ANTI_ALIASING_ON, MAX_VERTEX_BUFFER, MAX_ELEMENT_BUFFER) ;
         glfwSwapBuffers(window->glfw_window) ;
     }
     
@@ -905,9 +921,11 @@ void IDK_SetRasterResizeFunc( IDKWindow window, IDKRasterResizeFuncType RasterRe
     window->RasterResizeFunc = RasterResizeFunc ;
 }
 
-void IDK_SetNuklearCallBack( IDKWindow window, IDKNuklearCallBackFuncType NuklearCallBack ) {
+void IDK_SetNuklearCallBack( IDKWindow window, IDKNuklearCallBackFuncType NuklearCallBack, RKArgs args ) {
     
     window->NuklearCallBack = NuklearCallBack ;
+    
+    window->NuklearArgs = args ;
 }
 
 IDKWindow IDK_NewWindow( IDKApp App, int win_width, int win_height, const char* win_title, IDKRasterResizeFuncType RasterResizeFunc ) {
@@ -941,6 +959,8 @@ IDKWindow IDK_NewWindow( IDKApp App, int win_width, int win_height, const char* 
     NewWindow->RasterResizeFunc = RasterResizeFunc ;
     
     NewWindow->NuklearCallBack = NULL ;
+    
+    NewWindow->NuklearArgs = NULL ;
     
     RKMath_Set_Vec_Equal_To_A_Const(NewWindow->background_color, 0.5f, 4) ;
     

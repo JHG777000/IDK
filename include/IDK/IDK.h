@@ -52,6 +52,8 @@
 
 typedef double (*IDKGetTimeHPFuncType)(void) ;
 
+typedef void* IDKNuklearContext ;
+
 typedef struct IDKWindow_s* IDKWindow ;
 
 typedef struct IDK_Page_s* IDKPage ;
@@ -72,7 +74,7 @@ typedef void (*IDKWindowQuitRunLoopFuncType)(RKArgs args) ;
 
 typedef void (*IDKErrorCallBackFuncType)(IDKApp App, IDKErrorType ErrorType) ;
 
-typedef void (*IDKNuklearCallBackFuncType)( IDKWindow window, struct nk_context *ctx ) ;
+typedef void (*IDKNuklearCallBackFuncType)( IDKWindow window, IDKNuklearContext context, RKArgs args ) ;
 
 #define IDK_DefineKey(key,lastkey) key = (lastkey + 1)
 
@@ -223,7 +225,7 @@ void IDKLogDouble( IDKApp App, double val, int newline, int error ) ;
 
 void IDK_SetRasterResizeFunc( IDKWindow window, IDKRasterResizeFuncType RasterResizeFunc ) ;
 
-void IDK_SetNuklearCallBack( IDKWindow window, IDKNuklearCallBackFuncType NuklearCallBack ) ;
+void IDK_SetNuklearCallBack( IDKWindow window, IDKNuklearCallBackFuncType NuklearCallBack, RKArgs args ) ;
 
 IDKWindow IDK_NewWindow( IDKApp App, int win_width, int win_height, const char* win_title, IDKRasterResizeFuncType RasterResizeFunc ) ;
 
@@ -241,7 +243,8 @@ void IDK_CloseWindow( IDKWindow window ) ;
 
 void IDK_WindowRunLoop( IDKWindow window, IDKWindowRunLoopFuncType IDKWindowRunLoopFunc, RKArgs RunArgs, IDKWindowQuitRunLoopFuncType IDKWindowQuitRunLoopFunc, RKArgs QuitArgs )  ;
 
-void IDK_WindowRunLoopWithTime( IDKWindow window, double seconds, IDKWindowRunLoopFuncType IDKWindowRunLoopFunc, RKArgs RunArgs, IDKWindowQuitRunLoopFuncType IDKWindowQuitRunLoopFunc, RKArgs QuitArgs ) ;
+void IDK_WindowRunLoopWithTime( IDKWindow window, double seconds, IDKWindowRunLoopFuncType IDKWindowRunLoopFunc, RKArgs RunArgs,
+                               IDKWindowQuitRunLoopFuncType IDKWindowQuitRunLoopFunc, RKArgs QuitArgs ) ;
 
 void* IDK_GetPtrToGLFWWindow( IDKWindow window ) ;
 

@@ -12,11 +12,13 @@ void EndLoopFunc( RKArgs args ) {
     
 }
 
-void NuklearFunc( IDKWindow window, struct nk_context *ctx ) {
+void NuklearFunc( IDKWindow window, IDKNuklearContext context, RKArgs args ) {
     
     //Nuklear example from: nuklear/demo/glfw_opengl3/main.c
     
-    static struct nk_colorf bg;
+    struct nk_context *ctx = context ;
+    
+    static struct nk_colorf bg ;
     
     static int init = 0 ;
     
@@ -70,7 +72,7 @@ int main(int argc, const char * argv[]) {
     
     IDKWindow Window = IDK_NewWindow(App, 1366, 768, "Hello World!!!!", NULL) ;
     
-    IDK_SetNuklearCallBack(Window, NuklearFunc) ;
+    IDK_SetNuklearCallBack(Window, NuklearFunc, NULL) ;
     
     IDK_WindowRunLoop(Window, RunLoopFunc, NULL, EndLoopFunc, NULL) ;
 }
