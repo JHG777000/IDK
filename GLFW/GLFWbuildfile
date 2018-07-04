@@ -1,9 +1,9 @@
 
 project := "GLFWProject".
 
-project_version := "1.0".
+project_version := "1.0.0".
 
-buildfile_version := "1.0.0".
+buildfile_version := "1.0".
 
 url_to_src := "https://github.com/glfw/glfw/archive/0be4f3f75aebd9d24583ee86590a38e741db0904.zip".
 
