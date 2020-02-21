@@ -1,7 +1,7 @@
 
 project := "IDKProject".
 
-project_version := "1.0.16".
+project_version := "1.0.17".
 
 buildfile_version := "1.0".
 
@@ -83,7 +83,7 @@ if ( is_win ).
 
  sources IDKSource(IDKFiles,IDKLibraries).
 
-end if.
+ end if.
 
  compiler IDKCompilerFlags("-Wall", "-I " + include_path, "-I " + rklib_include_path,
           "-I " + glfw_include_path).
