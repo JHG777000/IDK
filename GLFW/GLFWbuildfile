@@ -1,7 +1,7 @@
 
 project := "GLFWProject".
 
-project_version := "1.0.7".
+project_version := "1.0.8".
 
 buildfile_version := "1.0".
 
@@ -186,7 +186,7 @@ if ( is_linux ).
 
  sources GLFWSource(common,linux,libs).
 
-end if.
+ end if.
 
  make filepath include_path from "resources" to "include".
 
